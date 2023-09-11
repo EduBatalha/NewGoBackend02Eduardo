@@ -92,7 +92,7 @@ public class ProductDAO {
             statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
-            // Trate a exceção ou propague-a conforme necessário
+            // TODO tratar a exceção
             throw new RuntimeException("Erro ao criar um novo produto", e);
         }
     }
@@ -118,7 +118,7 @@ public class ProductDAO {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            // Trate a exceção ou propague-a conforme necessário
+            // TODO tratar a exceção
             throw new RuntimeException("Erro ao atualizar o produto", e);
         }
     }
@@ -136,7 +136,7 @@ public class ProductDAO {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            // Trate a exceção ou propague-a conforme necessário
+            // TODO tratar a exceção
             throw new RuntimeException("Erro ao excluir o produto", e);
         }
     }

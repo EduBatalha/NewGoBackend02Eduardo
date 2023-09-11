@@ -103,12 +103,12 @@ public class Product {
     }
 
     // Getter para o campo 'active'
-    public boolean isL_ativo() {
+    public boolean isLativo() {
         return l_ativo;
     }
 
     // Setter para o campo 'active'
-    public void setL_ativo(boolean l_ativo) {
+    public void setLativo(boolean l_ativo) {
         this.l_ativo = l_ativo;
     }
 

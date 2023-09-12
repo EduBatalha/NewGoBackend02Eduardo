@@ -102,12 +102,12 @@ public class Product {
         this.dtUpdate = dtUpdate;
     }
 
-    // Getter para o campo 'active'
+    // Getter para o campo 'l_ativo'
     public boolean isLativo() {
         return l_ativo;
     }
 
-    // Setter para o campo 'active'
+    // Setter para o campo 'l_ativo'
     public void setLativo(boolean l_ativo) {
         this.l_ativo = l_ativo;
     }

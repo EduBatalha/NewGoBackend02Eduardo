@@ -15,32 +15,12 @@ public class PostgreSQLConnection {
 
             // Estabelecendo a conexão com o banco de dados
             Connection connection = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+
+            // Retorna a conexão dentro do bloco try-with-resources
             return connection;
         } catch (ClassNotFoundException | SQLException e) {
-            // Trate as exceções aqui ou simplesmente propague-as
+            // Exceções
             throw new RuntimeException("Erro ao obter a conexão com o banco de dados", e);
-        }
-    };
-
-    public static void main(String[] args) {
-        System.out.println("Testando a conexão com o banco de dados...");
-
-        // Obtendo uma conexão com o PostgreSQL
-        Connection connection = getConnection();
-
-        if (connection != null) {
-            System.out.println("Conexão bem-sucedida ao banco de dados PostgreSQL.");
-
-            // Feche a conexão quando terminar
-            try {
-                connection.close();
-                System.out.println("Conexão com o banco de dados fechada com sucesso.");
-            } catch (SQLException e) {
-                System.out.println("Erro ao fechar a conexão com o banco de dados.");
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println("Falha na conexão ao banco de dados PostgreSQL.");
         }
     }
 }

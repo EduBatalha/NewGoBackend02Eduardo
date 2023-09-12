@@ -2,15 +2,15 @@ package Data;
 
 public class Product {
     private long id;
-    private String name;
-    private String description;
+    private String nome;
+    private String descricao;
     private String ean13;
-    private double price;
-    private double quantity;
-    private double minStock;
-    private String dtCreate;
-    private String dtUpdate;
-    private boolean l_ativo;
+    private double preco;
+    private double quantidade;
+    private double estoque_min;
+    private String dtcreate;
+    private String dtupdate;
+    private boolean lativo;
 
     // Getter para o campo 'id'
     public long getId() {
@@ -24,22 +24,22 @@ public class Product {
 
     // Getter para o campo 'name'
     public String getName() {
-        return name;
+        return nome;
     }
 
     // Setter para o campo 'name'
     public void setName(String name) {
-        this.name = name;
+        this.nome = name;
     }
 
     // Getter para o campo 'description'
     public String getDescription() {
-        return description;
+        return descricao;
     }
 
     // Setter para o campo 'description'
     public void setDescription(String description) {
-        this.description = description;
+        this.descricao = description;
     }
 
     // Getter para o campo 'ean13'
@@ -54,62 +54,43 @@ public class Product {
 
     // Getter para o campo 'price'
     public double getPrice() {
-        return price;
+        return preco;
     }
 
     // Setter para o campo 'price'
     public void setPrice(double price) {
-        this.price = price;
+        this.preco = price;
     }
 
     // Getter para o campo 'quantity'
     public double getQuantity() {
-        return quantity;
+        return quantidade;
     }
 
     // Setter para o campo 'quantity'
     public void setQuantity(double quantity) {
-        this.quantity = quantity;
+        this.quantidade = quantity;
     }
 
     // Getter para o campo 'minStock'
     public double getMinStock() {
-        return minStock;
+        return estoque_min;
     }
 
     // Setter para o campo 'minStock'
     public void setMinStock(double minStock) {
-        this.minStock = minStock;
+        this.estoque_min = minStock;
     }
 
-    // Getter para o campo 'dtCreate'
-    public String getDtCreate() {
-        return dtCreate;
-    }
-
-    // Setter para o campo 'dtCreate'
-    public void setDtCreate(String dtCreate) {
-        this.dtCreate = dtCreate;
-    }
-
-    // Getter para o campo 'dtUpdate'
-    public String getDtUpdate() {
-        return dtUpdate;
-    }
-
-    // Setter para o campo 'dtUpdate'
-    public void setDtUpdate(String dtUpdate) {
-        this.dtUpdate = dtUpdate;
-    }
 
     // Getter para o campo 'l_ativo'
     public boolean isLativo() {
-        return l_ativo;
+        return lativo;
     }
 
     // Setter para o campo 'l_ativo'
     public void setLativo(boolean l_ativo) {
-        this.l_ativo = l_ativo;
+        this.lativo = l_ativo;
     }
 
 }

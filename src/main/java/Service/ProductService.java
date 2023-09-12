@@ -28,19 +28,18 @@ public class ProductService {
             throw new IllegalArgumentException("Preço, quantidade ou estoque mínimo não podem ser negativos");
         }
 
-        // Preencher dtcreate com a timestamp atual, dtupdate com nulo e lativo com falso (RN009)
-        product.setDtCreate(getCurrentTimestamp());
-        product.setDtUpdate(null);
+        // Preencher lativo com falso (RN009)
         product.setLativo(false);
 
         // Chamar o método do DAO para criar o produto
         productDAO.createProduct(product);
     }
 
+
     private boolean isProductNameDuplicate(String name) {
         // Implemente a lógica de verificação de duplicação usando a conexão do PostgreSQLConnection
         try (Connection connection = PostgreSQLConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM products WHERE name = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM produto WHERE nome = ?")) {
             statement.setString(1, name);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -57,7 +56,7 @@ public class ProductService {
     private boolean isProductEan13Duplicate(String ean13) {
         // Implemente a lógica de verificação de duplicação usando a conexão do PostgreSQLConnection
         try (Connection connection = PostgreSQLConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM products WHERE ean13 = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM produto WHERE ean13 = ?")) {
             statement.setString(1, ean13);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -70,12 +69,6 @@ public class ProductService {
         }
         return false;
     }
-
-    private String getCurrentTimestamp() {
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        return timestamp.toString();
-    }
-
 
 
     public void updateProduct(Product product) {
@@ -97,9 +90,6 @@ public class ProductService {
             // Lidar com valores negativos, por exemplo, lançar uma exceção
             throw new IllegalArgumentException("Preço, quantidade ou estoque mínimo não podem ser negativos");
         }
-
-        // Atualize dtupdate com a timestamp atual (RN011)
-        product.setDtUpdate(getCurrentTimestamp());
 
         // Chame o método do DAO para atualizar o produto
         productDAO.updateProduct(product);

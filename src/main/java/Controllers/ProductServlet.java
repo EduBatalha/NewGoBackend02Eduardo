@@ -39,16 +39,47 @@ public class ProductServlet extends HttpServlet {
     @Override
     protected void doPut(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        BufferedReader reader = request.getReader();
-        Product updatedProduct = gson.fromJson(reader, Product.class);
-        productService.updateProduct(updatedProduct);
-        response.setStatus(HttpServletResponse.SC_OK);
+        // Obtém o ID do produto a ser atualizado dos parâmetros da solicitação
+        String productIdStr = request.getParameter("id");
+
+        if (productIdStr != null && !productIdStr.isEmpty()) {
+            try {
+                // Converte o ID para o tipo correto (neste caso, long)
+                long productId = Long.parseLong(productIdStr);
+
+                // Lê o JSON do corpo da solicitação e converte em um objeto Product
+                BufferedReader reader = request.getReader();
+                StringBuilder requestBody = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    requestBody.append(line);
+                }
+                Product updatedProduct = gson.fromJson(requestBody.toString(), Product.class);
+
+                // Chame o serviço para atualizar o produto
+                boolean updated = productService.updateProduct(productId, updatedProduct);
+
+                if (updated) {
+                    response.setStatus(HttpServletResponse.SC_OK); // 200 OK
+                } else {
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND); // 404 Not Found (Produto não encontrado)
+                }
+            } catch (NumberFormatException e) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST); // 400 Bad Request (ID do produto inválido)
+            }
+        } else {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST); // 400 Bad Request (ID do produto ausente ou inválido)
+        }
     }
+
+
+
+
 
     @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        long productId = Long.parseLong(request.getParameter("id"));
+        int productId = Integer.parseInt(request.getParameter("id"));
         productService.deleteProduct(productId);
         response.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }

@@ -6,9 +6,9 @@ import Data.Product;
 
 import java.sql.*;
 import java.util.List;
+import java.util.UUID;
 
 
-//TODO
 public class ProductService {
     private ProductDAO productDAO = new ProductDAO();
 
@@ -71,34 +71,26 @@ public class ProductService {
     }
 
 
-    public void updateProduct(Product product) {
-        // Adicione lógica para verificar se o produto existe no banco de dados, por exemplo, pelo ID
-        Product existingProduct = productDAO.getProductById(product.getId());
+    public boolean updateProduct(long productId, Product updatedProduct) {
+        // 1. Verificar se o produto com o ID especificado existe no banco de dados.
+        Product existingProduct = productDAO.getProductById(productId);
         if (existingProduct == null) {
-            // Produto não encontrado, tratar a situação de acordo, por exemplo, lançar uma exceção
-            throw new IllegalArgumentException("Produto não encontrado");
+            return false; // Produto não encontrado, a atualização não é possível.
         }
 
-        // Adicione lógica para verificar se o produto está inativo (RN012)
-        if (!existingProduct.isLativo() && !product.isLativo()) {
-            // Produto está inativo e não pode ser atualizado, tratar a situação de acordo, por exemplo, lançar uma exceção
-            throw new IllegalArgumentException("Produto inativo não pode ser atualizado");
-        }
+        // 2. Aplicar regras de negócio para atualização (por exemplo, RN005).
+        // Você pode adicionar outras regras de negócio aqui, se necessário.
 
-        // Adicione lógica para verificar regras de negócios, por exemplo, RN004
-        if (product.getPrice() < 0 || product.getQuantity() < 0 || product.getMinStock() < 0) {
-            // Lidar com valores negativos, por exemplo, lançar uma exceção
-            throw new IllegalArgumentException("Preço, quantidade ou estoque mínimo não podem ser negativos");
-        }
+        // 3. Definir as informações que não podem ser alteradas pelo usuário.
+        updatedProduct.setId(existingProduct.getId());
 
-        // Chame o método do DAO para atualizar o produto
-        productDAO.updateProduct(product);
+        // 4. Atualizar o produto no banco de dados usando o ProductDAO.
+        return productDAO.updateProduct(updatedProduct);
     }
 
-
-    public void deleteProduct(long productId) {
+    public void deleteProduct(int productId) {
         // Adicione lógica para verificar se o produto existe no banco de dados, por exemplo, pelo ID
-        Product existingProduct = productDAO.getProductById(productId);
+        Product existingProduct = productDAO.getProductById((int) productId);
         if (existingProduct == null) {
             // Produto não encontrado, tratar a situação de acordo, por exemplo, lançar uma exceção
             throw new IllegalArgumentException("Produto não encontrado");
@@ -113,5 +105,4 @@ public class ProductService {
         // Chame o método do DAO para excluir o produto
         productDAO.deleteProduct(productId);
     }
-
 }

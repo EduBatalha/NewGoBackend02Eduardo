@@ -8,8 +8,6 @@ public class Product {
     private double preco;
     private double quantidade;
     private double estoque_min;
-    private String dtcreate;
-    private String dtupdate;
     private boolean lativo;
 
     // Getter para o campo 'id'

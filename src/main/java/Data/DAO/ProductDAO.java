@@ -12,21 +12,19 @@ public class ProductDAO {
     public List<Product> getAllProducts() {
         List<Product> products = new ArrayList<>();
         try (Connection connection = PostgreSQLConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM products");
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM produto");
              ResultSet resultSet = statement.executeQuery()) {
 
             while (resultSet.next()) {
                 Product product = new Product();
                 product.setId(resultSet.getLong("id"));
-                product.setName(resultSet.getString("name"));
-                product.setDescription(resultSet.getString("description"));
+                product.setName(resultSet.getString("nome"));
+                product.setDescription(resultSet.getString("descricao"));
                 product.setEan13(resultSet.getString("ean13"));
-                product.setPrice(resultSet.getDouble("price"));
-                product.setQuantity(resultSet.getDouble("quantity"));
-                product.setMinStock(resultSet.getDouble("min_stock"));
-                product.setDtCreate(resultSet.getString("dtcreate"));
-                product.setDtUpdate(resultSet.getString("dtupdate"));
-                product.setLativo(resultSet.getBoolean("l_ativo"));
+                product.setPrice(resultSet.getDouble("preco"));
+                product.setQuantity(resultSet.getDouble("quantidade"));
+                product.setMinStock(resultSet.getDouble("estoque_min"));
+                product.setLativo(resultSet.getBoolean("lativo"));
                 products.add(product);
             }
         } catch (SQLException e) {
@@ -37,8 +35,9 @@ public class ProductDAO {
         return products;
     }
 
+
     public Product getProductById(long productId) {
-        String sql = "SELECT * FROM produtos WHERE id = ?";
+        String sql = "SELECT * FROM produto WHERE id = ?";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -66,18 +65,17 @@ public class ProductDAO {
         product.setPrice(resultSet.getDouble("preco"));
         product.setQuantity(resultSet.getDouble("quantidade"));
         product.setMinStock(resultSet.getDouble("estoque_min"));
-        product.setDtCreate(resultSet.getString("dtcreate"));
-        product.setDtUpdate(resultSet.getString("dtupdate"));
         product.setLativo(resultSet.getBoolean("lativo"));
         return product;
     }
 
 
+
     public void createProduct(Product product) {
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "INSERT INTO products (name, description, ean13, price, quantity, min_stock, dtcreate, dtupdate, l_ativo) " +
-                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                     "INSERT INTO produto (nome, descricao, ean13, preco, quantidade, estoque_min, lativo) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?)")) {
 
             statement.setString(1, product.getName());
             statement.setString(2, product.getDescription());
@@ -85,9 +83,7 @@ public class ProductDAO {
             statement.setDouble(4, product.getPrice());
             statement.setDouble(5, product.getQuantity());
             statement.setDouble(6, product.getMinStock());
-            statement.setString(7, product.getDtCreate());
-            statement.setString(8, product.getDtUpdate());
-            statement.setBoolean(9, product.isLativo());
+            statement.setBoolean(7, product.isLativo());
 
             statement.executeUpdate();
         } catch (SQLException e) {
@@ -100,8 +96,8 @@ public class ProductDAO {
     public void updateProduct(Product product) {
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "UPDATE products SET name = ?, description = ?, ean13 = ?, price = ?, " +
-                             "quantity = ?, min_stock = ?, dtupdate = CURRENT_TIMESTAMP, l_ativo = ? WHERE id = ?")) {
+                     "UPDATE produto SET nome = ?, descricao = ?, ean13 = ?, preco = ?, " +
+                             "quantidade = ?, estoque_min = ?, lativo = ? WHERE id = ?")) {
 
             statement.setString(1, product.getName());
             statement.setString(2, product.getDescription());
@@ -123,10 +119,11 @@ public class ProductDAO {
         }
     }
 
+
     public void deleteProduct(long productId) {
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "DELETE FROM products WHERE id = ?")) {
+                     "DELETE FROM produto WHERE id = ?")) {
 
             statement.setLong(1, productId);
 

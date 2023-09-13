@@ -6,6 +6,7 @@ import Data.Product;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ProductDAO {
     public List<Product> getAllProducts() {
@@ -17,6 +18,7 @@ public class ProductDAO {
             while (resultSet.next()) {
                 Product product = new Product();
                 product.setId(resultSet.getInt("id"));
+                product.setHash(UUID.fromString(resultSet.getString("hash")));
                 product.setName(resultSet.getString("nome"));
                 product.setDescription(resultSet.getString("descricao"));
                 product.setEan13(resultSet.getString("ean13"));
@@ -34,41 +36,25 @@ public class ProductDAO {
         return products;
     }
 
-
-    public Product getProductById(long productId) {
-        String sql = "SELECT * FROM produto WHERE id = ?";
+    public boolean doesProductExist(UUID productHash) {
+        String query = "SELECT COUNT(*) FROM produto WHERE hash = ?";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setLong(1, productId);
-            ResultSet resultSet = preparedStatement.executeQuery();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setObject(1, productHash);
 
-            if (resultSet.next()) {
-                return mapResultSetToProduct(resultSet);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    int count = resultSet.getInt(1);
+                    return count > 0; // Retorna true se houver algum registro com o hash
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            // Lidar com exceções aqui
         }
 
-        return null; // Retorne null se o produto não for encontrado
+        return false; // Se ocorrer algum erro ou nenhum registro for encontrado
     }
-
-
-    // Adicione um método para mapear o resultado da consulta para um objeto Product
-    private Product mapResultSetToProduct(ResultSet resultSet) throws SQLException {
-        Product product = new Product();
-        product.setId(resultSet.getInt("id"));
-        product.setName(resultSet.getString("nome"));
-        product.setDescription(resultSet.getString("descricao"));
-        product.setEan13(resultSet.getString("ean13"));
-        product.setPrice(resultSet.getDouble("preco"));
-        product.setQuantity(resultSet.getDouble("quantidade"));
-        product.setMinStock(resultSet.getDouble("estoque_min"));
-        product.setLativo(resultSet.getBoolean("lativo"));
-        return product;
-    }
-
 
     public void createProduct(Product product) {
         try (Connection connection = PostgreSQLConnection.getConnection();
@@ -92,20 +78,18 @@ public class ProductDAO {
     }
 
     public boolean updateProduct(Product updatedProduct) {
-        String sql = "UPDATE produtos SET nome = ?, descricao = ?, ean13 = ?, preco = ?, quantidade = ?, estoque_min = ?, lativo = ? WHERE id = ?";
+        String sql = "UPDATE produto SET descricao = ?, preco = ?, quantidade = ?, estoque_min = ?, lativo = ? WHERE hash = ?";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
             // Define os valores dos parâmetros na consulta SQL
-            preparedStatement.setString(1, updatedProduct.getName());
-            preparedStatement.setString(2, updatedProduct.getDescription());
-            preparedStatement.setString(3, updatedProduct.getEan13());
-            preparedStatement.setDouble(4, updatedProduct.getPrice());
-            preparedStatement.setDouble(5, updatedProduct.getQuantity());
-            preparedStatement.setDouble(6, updatedProduct.getMinStock());
-            preparedStatement.setBoolean(7, updatedProduct.isLativo());
-            preparedStatement.setLong(8, updatedProduct.getId());
+            preparedStatement.setString(1, updatedProduct.getDescription());
+            preparedStatement.setDouble(2, updatedProduct.getPrice());
+            preparedStatement.setDouble(3, updatedProduct.getQuantity());
+            preparedStatement.setDouble(4, updatedProduct.getMinStock());
+            preparedStatement.setBoolean(5, updatedProduct.isLativo());
+            preparedStatement.setObject(6, updatedProduct.getHash()); // Define o hash como parâmetro
 
             // Executa a consulta de atualização
             int rowsUpdated = preparedStatement.executeUpdate();
@@ -119,23 +103,22 @@ public class ProductDAO {
         }
     }
 
-
-
-    public void deleteProduct(int productId) {
+    public void deleteProduct(UUID productHash) {
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "DELETE FROM produto WHERE id = ?")) {
+                     "DELETE FROM produto WHERE hash = ?")) {
 
-            statement.setInt(1, productId);
+            statement.setObject(1, productHash);
 
             int rowsDeleted = statement.executeUpdate();
             if (rowsDeleted == 0) {
-                throw new SQLException("Falha ao excluir o produto, ID não encontrado");
+                throw new SQLException("Falha ao excluir o produto, hash não encontrado");
             }
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException("Erro ao excluir o produto", e);
         }
     }
+
 }
 

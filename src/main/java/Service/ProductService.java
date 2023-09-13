@@ -71,38 +71,31 @@ public class ProductService {
     }
 
 
-    public boolean updateProduct(long productId, Product updatedProduct) {
-        // 1. Verificar se o produto com o ID especificado existe no banco de dados.
-        Product existingProduct = productDAO.getProductById(productId);
-        if (existingProduct == null) {
-            return false; // Produto não encontrado, a atualização não é possível.
+    public boolean updateProduct(UUID productHash, Product updatedProduct) {
+        // Verificar se o produto com o hash especificado existe no banco de dados
+        boolean productExists = productDAO.doesProductExist(productHash);
+
+        if (!productExists) {
+            throw new IllegalArgumentException("Produto não encontrado");
         }
 
-        // 2. Aplicar regras de negócio para atualização (por exemplo, RN005).
-        // Você pode adicionar outras regras de negócio aqui, se necessário.
-
-        // 3. Definir as informações que não podem ser alteradas pelo usuário.
-        updatedProduct.setId(existingProduct.getId());
-
-        // 4. Atualizar o produto no banco de dados usando o ProductDAO.
+        // Atualize o produto no banco de dados usando o ProductDAO
         return productDAO.updateProduct(updatedProduct);
     }
 
-    public void deleteProduct(int productId) {
-        // Adicione lógica para verificar se o produto existe no banco de dados, por exemplo, pelo ID
-        Product existingProduct = productDAO.getProductById((int) productId);
-        if (existingProduct == null) {
+
+    public void deleteProduct(UUID productHash) {
+        // Verificar se o produto com o hash especificado existe no banco de dados
+        boolean productExists = productDAO.doesProductExist(productHash);
+
+        if (!productExists) {
             // Produto não encontrado, tratar a situação de acordo, por exemplo, lançar uma exceção
             throw new IllegalArgumentException("Produto não encontrado");
         }
 
-        // Adicione lógica para verificar se o produto está inativo (RN012)
-        if (!existingProduct.isLativo()) {
-            // Produto está inativo e não pode ser excluído, tratar a situação de acordo, por exemplo, lançar uma exceção
-            throw new IllegalArgumentException("Produto inativo não pode ser excluído");
-        }
-
-        // Chame o método do DAO para excluir o produto
-        productDAO.deleteProduct(productId);
+        // Chame o método do DAO para excluir o produto usando o hash
+        productDAO.deleteProduct(productHash);
     }
+
+
 }

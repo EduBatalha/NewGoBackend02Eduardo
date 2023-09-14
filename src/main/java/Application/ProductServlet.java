@@ -1,4 +1,4 @@
-package Controllers;
+package Application;
 
 import Data.Product;
 import Data.DAO.ProductDAO;
@@ -16,12 +16,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.UUID;
 
 @WebServlet("/products")
 public class ProductServlet extends HttpServlet {
     private ProductService productService = new ProductService();
     private ProductDAO productDAO = new ProductDAO();
+    ResourceBundle messages = ResourceBundle.getBundle("messages");
     private Gson gson = new Gson();
 
     @Override
@@ -59,7 +61,7 @@ public class ProductServlet extends HttpServlet {
 
         // Cria um JSON de confirmação simples
         JsonObject confirmation = new JsonObject();
-        confirmation.addProperty("message", "Product created successfully");
+        confirmation.addProperty("message",messages.getString("product.create.success"));
 
         // Escreve a resposta JSON na saída
         try (PrintWriter out = response.getWriter()) {
@@ -79,7 +81,7 @@ public class ProductServlet extends HttpServlet {
         // Certifique-se de que o hash do produto não seja nulo
         if (updatedProduct.getHash() == null) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("O campo 'hash' é obrigatório.");
+            response.getWriter().write(messages.getString("product.hash.required"));
             return;
         }
 
@@ -93,9 +95,9 @@ public class ProductServlet extends HttpServlet {
         // Cria um JSON de confirmação com base no resultado da atualização
         JsonObject confirmation = new JsonObject();
         if (updated) {
-            confirmation.addProperty("message", "Produto atualizado com sucesso");
+            confirmation.addProperty("message", messages.getString("product.update.success"));
         } else {
-            confirmation.addProperty("message", "Falha ao atualizar o produto");
+            confirmation.addProperty("message", messages.getString("product.update.error"));
         }
 
         // Escreve a resposta JSON na saída
@@ -125,9 +127,9 @@ public class ProductServlet extends HttpServlet {
         JsonObject confirmation = new JsonObject();
         if (productExists) {
             productService.deleteProduct(productHash);
-            confirmation.addProperty("message", "Product deleted successfully");
+            confirmation.addProperty("message", messages.getString("product.delete.success"));
         } else {
-            confirmation.addProperty("message", "Product not found");
+            confirmation.addProperty("message",  messages.getString("product.notfound"));
         }
 
         // Escreve a resposta JSON na saída

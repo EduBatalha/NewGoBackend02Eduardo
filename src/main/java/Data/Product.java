@@ -1,15 +1,16 @@
 package Data;
 
+import java.util.UUID;
+
 public class Product {
     private long id;
+    private UUID hash;
     private String nome;
     private String descricao;
     private String ean13;
     private double preco;
     private double quantidade;
     private double estoque_min;
-    private String dtcreate;
-    private String dtupdate;
     private boolean lativo;
 
     // Getter para o campo 'id'
@@ -20,6 +21,16 @@ public class Product {
     // Setter para o campo 'id'
     public void setId(long id) {
         this.id = id;
+    }
+
+    // Getter para o campo 'hash'
+    public UUID getHash() {
+        return hash;
+    }
+
+    // Setter para o campo 'hash'
+    public void setHash(UUID hash) {
+        this.hash = hash;
     }
 
     // Getter para o campo 'name'
@@ -81,7 +92,6 @@ public class Product {
     public void setMinStock(double minStock) {
         this.estoque_min = minStock;
     }
-
 
     // Getter para o campo 'l_ativo'
     public boolean isLativo() {

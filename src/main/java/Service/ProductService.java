@@ -6,9 +6,9 @@ import Data.Product;
 
 import java.sql.*;
 import java.util.List;
+import java.util.UUID;
 
 
-//TODO
 public class ProductService {
     private ProductDAO productDAO = new ProductDAO();
 
@@ -71,47 +71,38 @@ public class ProductService {
     }
 
 
-    public void updateProduct(Product product) {
-        // Adicione lógica para verificar se o produto existe no banco de dados, por exemplo, pelo ID
-        Product existingProduct = productDAO.getProductById(product.getId());
-        if (existingProduct == null) {
+    public boolean updateProduct(UUID productHash, Product updatedProduct) {
+        // Verificar se o produto com o hash especificado existe no banco de dados
+        boolean productExists = productDAO.doesProductExist(productHash);
+
+        if (!productExists) {
+            throw new IllegalArgumentException("Produto não encontrado");
+        }
+
+        // Verificar se o campo 'lativo' é verdadeiro antes de permitir a atualização
+        if (!productDAO.isProductActive(productHash)) {
+            throw new IllegalArgumentException("Não é possível atualizar um produto inativo");
+        }
+
+        // Atualize o produto no banco de dados usando o ProductDAO
+        return productDAO.updateProduct(updatedProduct);
+    }
+
+
+
+
+    public void deleteProduct(UUID productHash) {
+        // Verificar se o produto com o hash especificado existe no banco de dados
+        boolean productExists = productDAO.doesProductExist(productHash);
+
+        if (!productExists) {
             // Produto não encontrado, tratar a situação de acordo, por exemplo, lançar uma exceção
             throw new IllegalArgumentException("Produto não encontrado");
         }
 
-        // Adicione lógica para verificar se o produto está inativo (RN012)
-        if (!existingProduct.isLativo() && !product.isLativo()) {
-            // Produto está inativo e não pode ser atualizado, tratar a situação de acordo, por exemplo, lançar uma exceção
-            throw new IllegalArgumentException("Produto inativo não pode ser atualizado");
-        }
-
-        // Adicione lógica para verificar regras de negócios, por exemplo, RN004
-        if (product.getPrice() < 0 || product.getQuantity() < 0 || product.getMinStock() < 0) {
-            // Lidar com valores negativos, por exemplo, lançar uma exceção
-            throw new IllegalArgumentException("Preço, quantidade ou estoque mínimo não podem ser negativos");
-        }
-
-        // Chame o método do DAO para atualizar o produto
-        productDAO.updateProduct(product);
+        // Chame o método do DAO para excluir o produto usando o hash
+        productDAO.deleteProduct(productHash);
     }
 
-
-    public void deleteProduct(long productId) {
-        // Adicione lógica para verificar se o produto existe no banco de dados, por exemplo, pelo ID
-        Product existingProduct = productDAO.getProductById(productId);
-        if (existingProduct == null) {
-            // Produto não encontrado, tratar a situação de acordo, por exemplo, lançar uma exceção
-            throw new IllegalArgumentException("Produto não encontrado");
-        }
-
-        // Adicione lógica para verificar se o produto está inativo (RN012)
-        if (!existingProduct.isLativo()) {
-            // Produto está inativo e não pode ser excluído, tratar a situação de acordo, por exemplo, lançar uma exceção
-            throw new IllegalArgumentException("Produto inativo não pode ser excluído");
-        }
-
-        // Chame o método do DAO para excluir o produto
-        productDAO.deleteProduct(productId);
-    }
 
 }

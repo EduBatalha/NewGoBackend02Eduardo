@@ -19,8 +19,7 @@ public class PostgreSQLConnection {
             // Retorna a conexão dentro do bloco try-with-resources
             return connection;
         } catch (ClassNotFoundException | SQLException e) {
-            // Exceções
-            throw new RuntimeException("Erro ao obter a conexão com o banco de dados", e);
+            throw new RuntimeException(e);
         }
     }
 }

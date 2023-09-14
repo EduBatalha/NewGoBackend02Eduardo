@@ -31,7 +31,7 @@ public class ProductDAO {
         } catch (SQLException e) {
             e.printStackTrace();
             // Trate a exceção ou propague-a conforme necessário
-            throw new RuntimeException("Erro ao obter a lista de produtos", e);
+            throw new RuntimeException(e);
         }
         return products;
     }
@@ -70,9 +70,43 @@ public class ProductDAO {
         } catch (SQLException e) {
             e.printStackTrace();
             // Trate a exceção ou propague-a conforme necessário
-            throw new RuntimeException("Erro ao verificar o status do produto", e);
+            throw new RuntimeException(e);
         }
         return false; // Se ocorrer algum erro ou nenhum registro for encontrado
+    }
+
+    public boolean isProductNameDuplicate(String name) {
+        // Implemente a lógica de verificação de duplicação usando a conexão do PostgreSQLConnection
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM produto WHERE nome = ?")) {
+            statement.setString(1, name);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    int count = resultSet.getInt(1);
+                    return count > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean isProductEan13Duplicate(String ean13) {
+        // Implemente a lógica de verificação de duplicação usando a conexão do PostgreSQLConnection
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM produto WHERE ean13 = ?")) {
+            statement.setString(1, ean13);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    int count = resultSet.getInt(1);
+                    return count > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
 
@@ -93,7 +127,7 @@ public class ProductDAO {
             statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
-            throw new RuntimeException("Erro ao criar um novo produto", e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -131,11 +165,11 @@ public class ProductDAO {
 
             int rowsDeleted = statement.executeUpdate();
             if (rowsDeleted == 0) {
-                throw new SQLException("Falha ao excluir o produto, hash não encontrado");
+                throw new SQLException();
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            throw new RuntimeException("Erro ao excluir o produto", e);
+            throw new RuntimeException(e);
         }
     }
 

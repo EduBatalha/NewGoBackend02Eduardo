@@ -79,9 +79,16 @@ public class ProductService {
             throw new IllegalArgumentException("Produto não encontrado");
         }
 
+        // Verificar se o campo 'lativo' é verdadeiro antes de permitir a atualização
+        if (!productDAO.isProductActive(productHash)) {
+            throw new IllegalArgumentException("Não é possível atualizar um produto inativo");
+        }
+
         // Atualize o produto no banco de dados usando o ProductDAO
         return productDAO.updateProduct(updatedProduct);
     }
+
+
 
 
     public void deleteProduct(UUID productHash) {

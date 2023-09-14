@@ -56,6 +56,26 @@ public class ProductDAO {
         return false; // Se ocorrer algum erro ou nenhum registro for encontrado
     }
 
+    public boolean isProductActive(UUID productHash) {
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT lativo FROM produto WHERE hash = ?")) {
+            statement.setObject(1, productHash);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    boolean lativo = resultSet.getBoolean("lativo");
+                    return lativo;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Trate a exceção ou propague-a conforme necessário
+            throw new RuntimeException("Erro ao verificar o status do produto", e);
+        }
+        return false; // Se ocorrer algum erro ou nenhum registro for encontrado
+    }
+
+
     public void createProduct(Product product) {
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(
@@ -78,7 +98,7 @@ public class ProductDAO {
     }
 
     public boolean updateProduct(Product updatedProduct) {
-        String sql = "UPDATE produto SET descricao = ?, preco = ?, quantidade = ?, estoque_min = ?, lativo = ? WHERE hash = ?";
+        String sql = "UPDATE produto SET descricao = ?, preco = ?, quantidade = ?, estoque_min = ? WHERE hash = ?";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -88,8 +108,7 @@ public class ProductDAO {
             preparedStatement.setDouble(2, updatedProduct.getPrice());
             preparedStatement.setDouble(3, updatedProduct.getQuantity());
             preparedStatement.setDouble(4, updatedProduct.getMinStock());
-            preparedStatement.setBoolean(5, updatedProduct.isLativo());
-            preparedStatement.setObject(6, updatedProduct.getHash()); // Define o hash como parâmetro
+            preparedStatement.setObject(5, updatedProduct.getHash()); // Define o hash como parâmetro
 
             // Executa a consulta de atualização
             int rowsUpdated = preparedStatement.executeUpdate();

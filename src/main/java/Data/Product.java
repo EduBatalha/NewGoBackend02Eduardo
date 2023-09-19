@@ -13,11 +13,6 @@ public class Product {
     private double estoque_min;
     private boolean lativo;
 
-    // Getter para o campo 'id'
-    public long getId() {
-        return id;
-    }
-
     // Setter para o campo 'id'
     public void setId(long id) {
         this.id = id;

@@ -20,14 +20,26 @@ public class ProductService {
 
     public void createProduct(Product product) {
         // Verificar duplicação de nome e EAN13 (RN002 e RN003)
-        if (productDAO.isProductNameDuplicate(product.getName()) || productDAO.isProductEan13Duplicate(product.getEan13())) {
-            throw new IllegalArgumentException(messages.getString("error.duplicateNameOrEAN13"));
+        if (productDAO.isProductNameDuplicate(product.getName())) {
+            throw new IllegalArgumentException(messages.getString("error.duplicateName"));
+        }
+
+        if (productDAO.isProductEan13Duplicate(product.getEan13())) {
+            throw new IllegalArgumentException(messages.getString("error.duplicateEAN13"));
         }
 
         // Verificar se preço, quantidade ou estoque mínimo são negativos (RN004)
-        if (product.getPrice() < 0 || product.getQuantity() < 0 || product.getMinStock() < 0) {
-            throw new IllegalArgumentException(messages.getString("error.negativePriceQuantityMinStock"));
+        if (product.getPrice() < 0) {
+            throw new IllegalArgumentException(messages.getString("error.negativePrice"));
         }
+        if (product.getQuantity() < 0) {
+            throw new IllegalArgumentException(messages.getString("error.negativeQuantity"));
+        }
+
+        if (product.getMinStock() < 0) {
+            throw new IllegalArgumentException(messages.getString("error.negativeMinStock"));
+        }
+
 
         // Preencher lativo com falso (RN009)
         product.setLativo(false);

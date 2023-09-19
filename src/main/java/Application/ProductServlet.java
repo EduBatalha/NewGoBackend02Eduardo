@@ -4,7 +4,6 @@ import Data.Product;
 import Data.DAO.ProductDAO;
 import Service.ProductService;
 
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -28,113 +27,114 @@ public class ProductServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        List<Product> products = productService.getAllProducts();
+        try {
+            List<Product> products = productService.getAllProducts();
+            String jsonProducts = gson.toJson(products);
 
-        // Converte a lista de produtos para JSON
-        String jsonProducts = gson.toJson(products);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
 
-        // Configura a resposta para retornar JSON
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
-        // Escreve a resposta JSON na saída
-        try (PrintWriter out = response.getWriter()) {
-            out.print(jsonProducts);
+            try (PrintWriter out = response.getWriter()) {
+                out.print(jsonProducts);
+            }
+        } catch (Exception e) {
+            handleException(response, e);
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        // Lida com solicitações POST para criar um novo produto a partir de um JSON de entrada
-        BufferedReader reader = request.getReader();
-        JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+        try {
+            BufferedReader reader = request.getReader();
+            JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+            Product newProduct = gson.fromJson(jsonObject, Product.class);
 
-        // Converte o JSON para um objeto Product
-        Product newProduct = gson.fromJson(jsonObject, Product.class);
+            productService.createProduct(newProduct);
 
-        // Chame o método createProduct da ProductService para criar o produto
-        productService.createProduct(newProduct);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
 
-        // Configura a resposta para retornar um JSON de confirmação
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
+            JsonObject confirmation = new JsonObject();
+            confirmation.addProperty("message", messages.getString("product.create.success"));
 
-        // Cria um JSON de confirmação simples
-        JsonObject confirmation = new JsonObject();
-        confirmation.addProperty("message",messages.getString("product.create.success"));
-
-        // Escreve a resposta JSON na saída
-        try (PrintWriter out = response.getWriter()) {
-            out.print(gson.toJson(confirmation));
+            try (PrintWriter out = response.getWriter()) {
+                out.print(gson.toJson(confirmation));
+            }
+        } catch (Exception e) {
+            handleException(response, e);
         }
     }
 
     @Override
     protected void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        // Lida com solicitações PUT para atualizar um produto existente a partir de um JSON de entrada
-        BufferedReader reader = request.getReader();
-        JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+        try {
+            BufferedReader reader = request.getReader();
+            JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+            Product updatedProduct = gson.fromJson(jsonObject, Product.class);
 
-        // Converte o JSON para um objeto Product
-        Product updatedProduct = gson.fromJson(jsonObject, Product.class);
+            if (updatedProduct.getHash() == null) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().write(messages.getString("product.hash.required"));
+                return;
+            }
 
-        // Certifique-se de que o hash do produto não seja nulo
-        if (updatedProduct.getHash() == null) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write(messages.getString("product.hash.required"));
-            return;
-        }
+            boolean updated = productService.updateProduct(updatedProduct.getHash(), updatedProduct);
 
-        // Chame o método updateProduct da ProductService para atualizar o produto
-        boolean updated = productService.updateProduct(updatedProduct.getHash(), updatedProduct);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
 
-        // Configura a resposta para retornar um JSON de confirmação
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
+            JsonObject confirmation = new JsonObject();
+            if (updated) {
+                confirmation.addProperty("message", messages.getString("product.update.success"));
+            } else {
+                confirmation.addProperty("message", messages.getString("product.update.error"));
+            }
 
-        // Cria um JSON de confirmação com base no resultado da atualização
-        JsonObject confirmation = new JsonObject();
-        if (updated) {
-            confirmation.addProperty("message", messages.getString("product.update.success"));
-        } else {
-            confirmation.addProperty("message", messages.getString("product.update.error"));
-        }
-
-        // Escreve a resposta JSON na saída
-        try (PrintWriter out = response.getWriter()) {
-            out.print(gson.toJson(confirmation));
+            try (PrintWriter out = response.getWriter()) {
+                out.print(gson.toJson(confirmation));
+            }
+        } catch (Exception e) {
+            handleException(response, e);
         }
     }
 
-
-
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        // Lida com solicitações DELETE para excluir um produto existente a partir de um JSON de entrada
-        BufferedReader reader = request.getReader();
-        JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+        try {
+            BufferedReader reader = request.getReader();
+            JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+            UUID productHash = UUID.fromString(jsonObject.get("hash").getAsString());
 
-        // Extrai o hash do produto a ser excluído do JSON
-        UUID productHash = UUID.fromString(jsonObject.get("hash").getAsString());
+            boolean productExists = productDAO.doesProductExist(productHash);
 
-        // Verifique se o produto com o hash especificado existe usando a instância de ProductDAO
-        boolean productExists = productDAO.doesProductExist(productHash);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
 
-        // Configura a resposta para retornar um JSON de confirmação
+            JsonObject confirmation = new JsonObject();
+            if (productExists) {
+                productService.deleteProduct(productHash);
+                confirmation.addProperty("message", messages.getString("product.delete.success"));
+            } else {
+                confirmation.addProperty("message", messages.getString("product.notfound"));
+            }
+
+            try (PrintWriter out = response.getWriter()) {
+                out.print(gson.toJson(confirmation));
+            }
+        } catch (Exception e) {
+            handleException(response, e);
+        }
+    }
+
+    private void handleException(HttpServletResponse response, Exception e) throws IOException {
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        // Cria um JSON de confirmação com base no resultado da exclusão
-        JsonObject confirmation = new JsonObject();
-        if (productExists) {
-            productService.deleteProduct(productHash);
-            confirmation.addProperty("message", messages.getString("product.delete.success"));
-        } else {
-            confirmation.addProperty("message",  messages.getString("product.notfound"));
-        }
+        JsonObject errorJson = new JsonObject();
+        errorJson.addProperty("message", e.getMessage());
 
-        // Escreve a resposta JSON na saída
         try (PrintWriter out = response.getWriter()) {
-            out.print(gson.toJson(confirmation));
+            out.print(gson.toJson(errorJson));
         }
     }
 }

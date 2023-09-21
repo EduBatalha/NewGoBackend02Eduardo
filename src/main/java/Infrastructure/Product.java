@@ -1,4 +1,4 @@
-package Data;
+package Infrastructure;
 
 import java.util.UUID;
 
@@ -12,6 +12,20 @@ public class Product {
     private double quantidade;
     private double estoque_min;
     private boolean lativo;
+
+    public Product(String nome, String descricao, String ean13, double preco, double quantidade, double estoqueMin) {
+        this.nome = nome;
+        this.descricao = descricao;
+        this.ean13 = ean13;
+        this.preco = preco;
+        this.quantidade = quantidade;
+        this.estoque_min = estoqueMin;
+    }
+
+    public Product() {
+        //construtor vazio
+    }
+
 
     // Setter para o campo 'id'
     public void setId(long id) {

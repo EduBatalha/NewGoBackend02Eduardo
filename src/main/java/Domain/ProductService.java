@@ -1,7 +1,7 @@
-package Service;
+package Domain;
 
-import Data.DAO.ProductDAO;
-import Data.Product;
+import Infrastructure.DAO.ProductDAO;
+import Infrastructure.Product;
 
 
 import java.util.List;

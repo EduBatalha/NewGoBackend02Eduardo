@@ -1,4 +1,4 @@
-package Application;
+package Application.DTO;
 
 public class ProductDTO {
     private String nome;

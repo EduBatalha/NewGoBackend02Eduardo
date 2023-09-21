@@ -193,9 +193,13 @@ public class ProductServlet extends HttpServlet {
 
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            BufferedReader reader = request.getReader();
-            JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
-            UUID productHash = UUID.fromString(jsonObject.get("hash").getAsString());
+            // Obtenha o hash da URL
+            String hash = request.getPathInfo(); // Isso conterá "/hash" (por exemplo, "/609af184-6347-4226-a596-b27796944491")
+
+            // Remova a barra inicial
+            hash = hash.substring(1);
+
+            UUID productHash = UUID.fromString(hash);
 
             boolean productExists = productDAO.doesProductExist(productHash);
 
@@ -217,6 +221,7 @@ public class ProductServlet extends HttpServlet {
             handleException(response, e);
         }
     }
+
 
     private void handleException(HttpServletResponse response, Exception e) throws IOException {
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

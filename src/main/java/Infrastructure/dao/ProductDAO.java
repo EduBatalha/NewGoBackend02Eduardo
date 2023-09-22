@@ -1,7 +1,7 @@
-package Infrastructure.DAO;
+package Infrastructure.dao;
 
 import Infrastructure.PostgreSQLConnection;
-import Infrastructure.Product;
+import Infrastructure.Entity.Product;
 
 import java.sql.*;
 import java.util.ArrayList;

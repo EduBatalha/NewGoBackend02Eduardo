@@ -1,7 +1,7 @@
 package Domain;
 
-import Infrastructure.DAO.ProductDAO;
-import Infrastructure.Product;
+import Infrastructure.dao.ProductDAO;
+import Infrastructure.Entity.Product;
 
 
 import java.util.List;

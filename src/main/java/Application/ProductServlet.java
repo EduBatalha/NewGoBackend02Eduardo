@@ -1,9 +1,9 @@
 package Application;
 
-import Application.DTO.ProductDTO;
-import Application.DTO.ProductUpdateDTO;
-import Infrastructure.Product;
-import Infrastructure.DAO.ProductDAO;
+import Application.dto.ProductDTO;
+import Application.dto.ProductUpdateDTO;
+import Infrastructure.Entity.Product;
+import Infrastructure.dao.ProductDAO;
 import Domain.ProductService;
 
 import com.google.gson.Gson;

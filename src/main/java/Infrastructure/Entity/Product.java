@@ -1,4 +1,4 @@
-package Infrastructure;
+package Infrastructure.Entity;
 
 import java.util.UUID;
 

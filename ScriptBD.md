@@ -1,37 +1,29 @@
--- Criação da tabela produto
-CREATE TABLE IF NOT EXISTS produto
+## Criação da tabela produto
+-- Table: public.produto
+
+-- DROP TABLE IF EXISTS public.produto;
+
+CREATE TABLE IF NOT EXISTS public.produto
 (
-    id SERIAL PRIMARY KEY,
+    id bigint NOT NULL DEFAULT nextval('produto_id_seq'::regclass),
     hash uuid DEFAULT gen_random_uuid(),
-    nome character varying(255) NOT NULL,
-    descricao text,
-    ean13 character varying(13) NOT NULL,
+    nome character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    descricao text COLLATE pg_catalog."default",
+    ean13 character varying(13) COLLATE pg_catalog."default" NOT NULL,
     preco numeric(13,2) NOT NULL,
     quantidade numeric(13,2) NOT NULL,
     estoque_min numeric(13,2) NOT NULL,
-    dtcreate timestamp with time zone DEFAULT now(),
+    dtcreate timestamp with time zone,
     dtupdate timestamp with time zone,
     lativo boolean DEFAULT false,
+    CONSTRAINT produto_pkey PRIMARY KEY (id),
     CONSTRAINT produto_ean13_key UNIQUE (ean13),
     CONSTRAINT produto_preco_check CHECK (preco >= 0::numeric),
     CONSTRAINT produto_quantidade_check CHECK (quantidade >= 0::numeric),
     CONSTRAINT produto_estoque_min_check CHECK (estoque_min >= 0::numeric)
-);
+)
 
--- Criação da função para atualizar o campo dtupdate
-CREATE OR REPLACE FUNCTION update_dtupdate()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.dtupdate = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+TABLESPACE pg_default;
 
--- Associação do gatilho à tabela produto
-CREATE TRIGGER produto_update_dtupdate
-BEFORE UPDATE ON produto
-FOR EACH ROW
-EXECUTE FUNCTION update_dtupdate();
-
--- Definir permissões
-ALTER TABLE produto OWNER TO postgres;
+ALTER TABLE IF EXISTS public.produto
+    OWNER to postgres;

@@ -185,5 +185,35 @@ public class ProductDAO {
         }
     }
 
+    public void activateProduct(UUID productHash) {
+        String sql = "UPDATE produto SET lativo = true WHERE hash = ?";
+
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setObject(1, productHash); // Define o hash como parâmetro
+
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void deactivateProduct(UUID productHash) {
+        String sql = "UPDATE produto SET lativo = false WHERE hash = ?";
+
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setObject(1, productHash); // Define o hash como parâmetro
+
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
 }
 

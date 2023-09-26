@@ -113,9 +113,14 @@ public class ProductDAO {
     public void createProduct(Product product) {
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "INSERT INTO produto (nome, descricao, ean13, preco, quantidade, estoque_min, lativo) " +
-                             "VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+                     "INSERT INTO produto (nome, descricao, ean13, preco, quantidade, estoque_min, lativo, dtcreate) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
 
+            // Define a data de criação como a data e hora atual
+            Date currentDate = new Date(System.currentTimeMillis());
+            product.setDtCreate(currentDate);
+
+            // Configure os valores dos parâmetros na consulta SQL
             statement.setString(1, product.getName());
             statement.setString(2, product.getDescription());
             statement.setString(3, product.getEan13());
@@ -123,6 +128,7 @@ public class ProductDAO {
             statement.setDouble(5, product.getQuantity());
             statement.setDouble(6, product.getMinStock());
             statement.setBoolean(7, product.isLativo());
+            statement.setTimestamp(8, new java.sql.Timestamp(product.getDtCreate().getTime())); // Converte Date para Timestamp
 
             statement.executeUpdate();
         } catch (SQLException e) {
@@ -132,17 +138,22 @@ public class ProductDAO {
     }
 
     public boolean updateProduct(Product updatedProduct) {
-        String sql = "UPDATE produto SET descricao = ?, preco = ?, quantidade = ?, estoque_min = ? WHERE hash = ?";
+        String sql = "UPDATE produto SET descricao = ?, preco = ?, quantidade = ?, estoque_min = ?, dtupdate = ? WHERE hash = ?";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-            // Define os valores dos parâmetros na consulta SQL
+            // Define a data de atualização como a data e hora atual
+            Date currentDate = new Date(System.currentTimeMillis());
+            updatedProduct.setDtUpdate(currentDate);
+
+            // Configure os valores dos parâmetros na consulta SQL
             preparedStatement.setString(1, updatedProduct.getDescription());
             preparedStatement.setDouble(2, updatedProduct.getPrice());
             preparedStatement.setDouble(3, updatedProduct.getQuantity());
             preparedStatement.setDouble(4, updatedProduct.getMinStock());
-            preparedStatement.setObject(5, updatedProduct.getHash()); // Define o hash como parâmetro
+            preparedStatement.setTimestamp(5, new java.sql.Timestamp(updatedProduct.getDtUpdate().getTime())); // Converte Date para Timestamp
+            preparedStatement.setObject(6, updatedProduct.getHash()); // Define o hash como parâmetro
 
             // Executa a consulta de atualização
             int rowsUpdated = preparedStatement.executeUpdate();
@@ -155,6 +166,7 @@ public class ProductDAO {
             return false;
         }
     }
+
 
     public void deleteProduct(UUID productHash) {
         try (Connection connection = PostgreSQLConnection.getConnection();

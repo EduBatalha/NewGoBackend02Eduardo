@@ -5,6 +5,7 @@ import Infrastructure.Entity.Product;
 
 
 import java.util.List;
+import java.util.Date;
 import java.util.ResourceBundle;
 import java.util.UUID;
 
@@ -40,6 +41,8 @@ public class ProductService {
             throw new IllegalArgumentException(messages.getString("error.negativeMinStock"));
         }
 
+        // Define a data de criação como a data e hora atual
+        product.setDtCreate(new Date());
 
         // Preencher lativo com falso (RN009)
         product.setLativo(false);
@@ -61,6 +64,9 @@ public class ProductService {
         if (!productDAO.isProductActive(productHash)) {
             throw new IllegalArgumentException(messages.getString("error.cannotUpdateInactiveProduct"));
         }
+
+        // Define a data de atualização como a data e hora atual
+        updatedProduct.setDtUpdate(new Date());
 
         // Atualize o produto no banco de dados usando o ProductDAO
         return productDAO.updateProduct(updatedProduct);

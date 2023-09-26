@@ -167,6 +167,7 @@ public class ProductDAO {
         }
     }
 
+
     public void deleteProduct(UUID productHash) {
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(

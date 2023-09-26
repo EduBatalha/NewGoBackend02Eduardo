@@ -1,6 +1,8 @@
-package Infrastructure;
+package Infrastructure.Entity;
 
 import java.util.UUID;
+import java.util.Date;
+
 
 public class Product {
     private long id;
@@ -12,6 +14,8 @@ public class Product {
     private double quantidade;
     private double estoque_min;
     private boolean lativo;
+    private Date dtCreate; // Data de criação
+    private Date dtUpdate; // Data de atualização
 
     public Product(String nome, String descricao, String ean13, double preco, double quantidade, double estoqueMin) {
         this.nome = nome;
@@ -26,6 +30,25 @@ public class Product {
         //construtor vazio
     }
 
+    // Setter para o campo 'dtCreate'
+    public Date getDtCreate() {
+        return dtCreate;
+    }
+
+    // Setter para o campo 'dtCreate'
+    public void setDtCreate(Date dtCreate) {
+        this.dtCreate = dtCreate;
+    }
+
+    // Setter para o campo 'dtUpdate'
+    public Date getDtUpdate() {
+        return dtUpdate;
+    }
+
+    // Setter para o campo 'dtUpdate'
+    public void setDtUpdate(Date dtUpdate) {
+        this.dtUpdate = dtUpdate;
+    }
 
     // Setter para o campo 'id'
     public void setId(long id) {

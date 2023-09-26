@@ -1,4 +1,4 @@
-package Application.DTO;
+package Application.dto;
 
 public class ProductUpdateDTO {
     private String hash;

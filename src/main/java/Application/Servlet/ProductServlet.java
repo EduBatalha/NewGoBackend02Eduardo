@@ -373,7 +373,72 @@ public class ProductServlet extends HttpServlet {
     }
 
     protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        //TODO
+        try {
+            // Obtenha o hash da URL
+            String requestURI = request.getRequestURI();
+            String[] parts = requestURI.split("/");
+
+            if (parts.length != 4 || !"products".equals(parts[2])) {
+                // URL inválida, retorne um erro
+                JsonObject errorJson = new JsonObject();
+                errorJson.addProperty("error", messages.getString("product.invalid.url"));
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write(gson.toJson(errorJson));
+                return;
+            }
+
+            String hash = parts[3];
+
+            // Verifique se o DTO contém apenas o campo "lativo"
+            BufferedReader reader = request.getReader();
+            String line;
+            StringBuilder jsonBuilder = new StringBuilder();
+
+            while ((line = reader.readLine()) != null) {
+                jsonBuilder.append(line);
+            }
+
+            String jsonContent = jsonBuilder.toString();
+
+            if (jsonContent.isEmpty()) {
+                // Corpo da solicitação vazio, retorne um erro
+                JsonObject errorJson = new JsonObject();
+                errorJson.addProperty("error", messages.getString("product.missing.field")+ String.join(", ", "lativo"));
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write(gson.toJson(errorJson));
+                return;
+            }
+
+            JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
+
+
+            // Obtenha o valor do campo "lativo" do JSON
+            boolean isActive = jsonObject.get("lativo").getAsBoolean();
+
+            // Ative ou desative o produto com base no valor do campo "lativo"
+            UUID productHash = UUID.fromString(hash);
+            boolean updated = productService.activateOrDeactivateProduct(productHash, isActive);
+
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            JsonObject confirmation = new JsonObject();
+            if (updated) {
+                confirmation.addProperty("message", isActive ? messages.getString("product.activate.success") : messages.getString("product.deactivate.success"));
+            } else {
+                confirmation.addProperty("message", messages.getString("product.update.error"));
+            }
+
+            try (PrintWriter out = response.getWriter()) {
+                out.print(gson.toJson(confirmation));
+            }
+        } catch (Exception e) {
+            handleException(response, e);
+        }
     }
 
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {

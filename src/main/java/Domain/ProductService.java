@@ -86,4 +86,24 @@ public class ProductService {
         productDAO.deleteProduct(productHash);
     }
 
+    public boolean activateOrDeactivateProduct(UUID productHash, boolean isActive) {
+        // Verificar se o produto com o hash especificado existe no banco de dados
+        boolean productExists = productDAO.doesProductExist(productHash);
+
+        if (!productExists) {
+            throw new IllegalArgumentException(messages.getString("error.productNotFound"));
+        }
+
+        if (isActive) {
+            // Ativar o produto
+            productDAO.activateProduct(productHash);
+        } else {
+            // Desativar o produto
+            productDAO.deactivateProduct(productHash);
+        }
+
+        return true;
+    }
+
+
 }

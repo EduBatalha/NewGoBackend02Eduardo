@@ -94,7 +94,6 @@ public class ProductService {
             throw new IllegalArgumentException(messages.getString("error.productNotFound"));
         }
 
-        // Atualize o estado do produto com base no valor de "isActive"
         if (isActive) {
             // Ativar o produto
             productDAO.activateProduct(productHash);
@@ -105,5 +104,6 @@ public class ProductService {
 
         return true;
     }
+
 
 }

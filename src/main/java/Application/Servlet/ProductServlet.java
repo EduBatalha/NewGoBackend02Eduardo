@@ -1,4 +1,4 @@
-package Application;
+package Application.Servlet;
 
 import Application.dto.ProductDTO;
 import Application.dto.ProductUpdateDTO;
@@ -9,6 +9,9 @@ import Domain.ProductService;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import okhttp3.*;
+
+import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -24,6 +27,15 @@ public class ProductServlet extends HttpServlet {
     private ProductDAO productDAO = new ProductDAO();
     ResourceBundle messages = ResourceBundle.getBundle("messages");
     private Gson gson = new Gson();
+
+    @Override
+    protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        if ("PATCH".equalsIgnoreCase(request.getMethod())) {
+            doPatch(request, response);
+        } else {
+            super.service(request, response);
+        }
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -189,7 +201,9 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-
+    protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        //TODO
+    }
 
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {

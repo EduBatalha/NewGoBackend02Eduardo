@@ -9,7 +9,6 @@ import Domain.ProductService;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import okhttp3.*;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -40,19 +39,86 @@ public class ProductServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            List<Product> products = productService.getAllProducts();
-            String jsonProducts = gson.toJson(products);
+            String requestURI = request.getRequestURI();
+            String[] parts = requestURI.split("/");
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
+            if (parts.length == 4 && "products".equals(parts[2])) {
+                String hash = parts[3];
 
-            try (PrintWriter out = response.getWriter()) {
-                out.print(jsonProducts);
+                // Verifique se o query parameter "active" está presente e definido como "true"
+                String activeParam = request.getParameter("active");
+                boolean onlyActive = activeParam != null && activeParam.equalsIgnoreCase("true");
+
+                Product product = null;
+
+                if (onlyActive) {
+                    // Consulta apenas o produto ativo pelo hash
+                    product = productService.getActiveProductByHash(UUID.fromString(hash));
+                } else {
+                    // Consulta o produto pelo hash, independentemente do status
+                    product = productService.getProductByHash(UUID.fromString(hash));
+                }
+
+                if (product != null) {
+                    String jsonProduct = gson.toJson(product);
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+
+                    try (PrintWriter out = response.getWriter()) {
+                        out.print(jsonProduct);
+                    }
+                } else {
+                    // Produto não encontrado ou não está ativo
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    JsonObject errorJson = new JsonObject();
+                    errorJson.addProperty("error", messages.getString("error.inactiveOrNotFound"));
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    try (PrintWriter out = response.getWriter()) {
+                        out.print(errorJson.toString());
+                    }
+                }
+            } else {
+                // Consulta todos os produtos ou lida com outras consultas de produtos aqui, se necessário
+                String activeParam = request.getParameter("active");
+                boolean onlyActive = activeParam != null && activeParam.equalsIgnoreCase("true");
+
+                List<Product> products = null;
+
+                if (onlyActive) {
+                    // Consulta apenas produtos ativos
+                    products = productService.getActiveProducts();
+                } else {
+                    // Consulta todos os produtos
+                    products = productService.getAllProducts();
+                }
+
+                if (products != null) {
+                    String jsonProducts = gson.toJson(products);
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+
+                    try (PrintWriter out = response.getWriter()) {
+                        out.print(jsonProducts);
+                    }
+                } else {
+                    // Não foi possível recuperar os produtos
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    JsonObject errorJson = new JsonObject();
+                    errorJson.addProperty("error", messages.getString("error.cannotRetrieveData"));
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    try (PrintWriter out = response.getWriter()) {
+                        out.print(errorJson.toString());
+                    }
+                }
             }
         } catch (Exception e) {
             handleException(response, e);
         }
     }
+
+
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {

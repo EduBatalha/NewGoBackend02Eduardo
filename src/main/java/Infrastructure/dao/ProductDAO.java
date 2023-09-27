@@ -36,6 +36,93 @@ public class ProductDAO {
         return products;
     }
 
+    // Consulta para retornar todos os produtos ativos
+    public List<Product> getActiveProducts() {
+        List<Product> activeProducts = new ArrayList<>();
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM produto WHERE lativo = true");
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                Product product = new Product();
+                product.setId(resultSet.getInt("id"));
+                product.setHash(UUID.fromString(resultSet.getString("hash")));
+                product.setName(resultSet.getString("nome"));
+                product.setDescription(resultSet.getString("descricao"));
+                product.setEan13(resultSet.getString("ean13"));
+                product.setPrice(resultSet.getDouble("preco"));
+                product.setQuantity(resultSet.getDouble("quantidade"));
+                product.setMinStock(resultSet.getDouble("estoque_min"));
+                product.setLativo(resultSet.getBoolean("lativo"));
+                activeProducts.add(product);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Trate a exceção ou propague-a conforme necessário
+            throw new RuntimeException(e);
+        }
+        return activeProducts;
+    }
+
+    // Consulta para retornar um produto pelo seu hash
+    public Product getProductByHash(UUID productHash) {
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM produto WHERE hash = ?")) {
+            statement.setObject(1, productHash);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    Product product = new Product();
+                    product.setId(resultSet.getInt("id"));
+                    product.setHash(UUID.fromString(resultSet.getString("hash")));
+                    product.setName(resultSet.getString("nome"));
+                    product.setDescription(resultSet.getString("descricao"));
+                    product.setEan13(resultSet.getString("ean13"));
+                    product.setPrice(resultSet.getDouble("preco"));
+                    product.setQuantity(resultSet.getDouble("quantidade"));
+                    product.setMinStock(resultSet.getDouble("estoque_min"));
+                    product.setLativo(resultSet.getBoolean("lativo"));
+                    return product;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Trate a exceção ou propague-a conforme necessário
+            throw new RuntimeException(e);
+        }
+        return null; // Retorna null se o produto não for encontrado ou não estiver ativo
+    }
+
+    // Consulta para retornar um produto ativo pelo seu hash
+    public Product getActiveProductByHash(UUID productHash) {
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM produto WHERE hash = ? AND lativo = true")) {
+            statement.setObject(1, productHash);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    Product product = new Product();
+                    product.setId(resultSet.getInt("id"));
+                    product.setHash(UUID.fromString(resultSet.getString("hash")));
+                    product.setName(resultSet.getString("nome"));
+                    product.setDescription(resultSet.getString("descricao"));
+                    product.setEan13(resultSet.getString("ean13"));
+                    product.setPrice(resultSet.getDouble("preco"));
+                    product.setQuantity(resultSet.getDouble("quantidade"));
+                    product.setMinStock(resultSet.getDouble("estoque_min"));
+                    product.setLativo(resultSet.getBoolean("lativo"));
+                    return product;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Trate a exceção ou propague-a conforme necessário
+            throw new RuntimeException(e);
+        }
+        return null; // Retorna null se o produto não for encontrado ou não estiver ativo
+    }
+
+
     public boolean doesProductExist(UUID productHash) {
         String query = "SELECT COUNT(*) FROM produto WHERE hash = ?";
 

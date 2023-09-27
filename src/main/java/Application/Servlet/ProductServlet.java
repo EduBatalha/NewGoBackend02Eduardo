@@ -43,8 +43,8 @@ public class ProductServlet extends HttpServlet {
             String[] parts = requestURI.split("/");
 
             if (parts.length == 5 && "products".equals(parts[2]) && "active".equals(parts[4])) {
+                // Consulta produtos ativos por hash
                 String hash = parts[3];
-
                 Product product = productService.getActiveProductByHash(UUID.fromString(hash));
 
                 if (product != null) {
@@ -67,8 +67,8 @@ public class ProductServlet extends HttpServlet {
                     }
                 }
             } else if (parts.length == 4 && "products".equals(parts[2])) {
+                // Consulta produtos por hash
                 String hash = parts[3];
-
                 Product product = productService.getProductByHash(UUID.fromString(hash));
 
                 if (product != null) {
@@ -90,8 +90,96 @@ public class ProductServlet extends HttpServlet {
                         out.print(errorJson.toString());
                     }
                 }
+            } else if (parts.length == 3 && "products".equals(parts[2])) {
+                // Consulta produtos com quantidade abaixo do estoque mínimo
+                String belowMinStockParam = request.getParameter("abaixo-estoque-min");
+
+                if (belowMinStockParam != null && "true".equalsIgnoreCase(belowMinStockParam)) {
+                    List<Product> productsBelowMinStock = productService.getProductsBelowMinStock();
+
+                    if (productsBelowMinStock != null) {
+                        String jsonProducts = gson.toJson(productsBelowMinStock);
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
+
+                        try (PrintWriter out = response.getWriter()) {
+                            out.print(jsonProducts);
+                        }
+                    } else {
+                        // Não foi possível recuperar os produtos
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        JsonObject errorJson = new JsonObject();
+                        errorJson.addProperty("error", messages.getString("error.cannotRetrieveData"));
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
+                        try (PrintWriter out = response.getWriter()) {
+                            out.print(errorJson.toString());
+                        }
+                    }
+                } else {
+                    // Consulta todos os produtos
+                    String activeParam = request.getParameter("active");
+                    boolean onlyActive = activeParam != null && activeParam.equalsIgnoreCase("true");
+                    boolean onlyInactive = activeParam != null && activeParam.equalsIgnoreCase("false");
+
+                    List<Product> products = null;
+
+                    if (onlyActive) {
+                        // Consulta apenas produtos ativos
+                        products = productService.getActiveProducts();
+                    } else if (onlyInactive) {
+                        // Consulta apenas produtos inativos
+                        products = productService.getInactiveProducts();
+                    } else {
+                        // Consulta todos os produtos
+                        products = productService.getAllProducts();
+                    }
+
+                    if (products != null) {
+                        String jsonProducts = gson.toJson(products);
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
+
+                        try (PrintWriter out = response.getWriter()) {
+                            out.print(jsonProducts);
+                        }
+                    } else {
+                        // Não foi possível recuperar os produtos
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        JsonObject errorJson = new JsonObject();
+                        errorJson.addProperty("error", messages.getString("error.cannotRetrieveData"));
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
+                        try (PrintWriter out = response.getWriter()) {
+                            out.print(errorJson.toString());
+                        }
+                    }
+                }
+            } else if (parts.length == 4 && "products".equals(parts[2]) && "active".equals(parts[3])) {
+                // Consulta produtos ativos
+                List<Product> activeProducts = productService.getActiveProducts();
+
+                if (activeProducts != null) {
+                    String jsonProducts = gson.toJson(activeProducts);
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+
+                    try (PrintWriter out = response.getWriter()) {
+                        out.print(jsonProducts);
+                    }
+                } else {
+                    // Não foi possível recuperar os produtos ativos
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    JsonObject errorJson = new JsonObject();
+                    errorJson.addProperty("error", messages.getString("error.cannotRetrieveData"));
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    try (PrintWriter out = response.getWriter()) {
+                        out.print(errorJson.toString());
+                    }
+                }
             } else {
-                // Consulta todos os produtos ou lida com outras consultas de produtos aqui, se necessário
+                // Consulta outros tipos de produtos ou lida com outras consultas aqui, se necessário
                 String activeParam = request.getParameter("active");
                 boolean onlyActive = activeParam != null && activeParam.equalsIgnoreCase("true");
                 boolean onlyInactive = activeParam != null && activeParam.equalsIgnoreCase("false");

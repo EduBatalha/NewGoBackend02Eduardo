@@ -4,7 +4,6 @@ import Infrastructure.dao.ProductDAO;
 import Infrastructure.Entity.Product;
 
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Date;
 import java.util.ResourceBundle;
@@ -27,6 +26,10 @@ public class ProductService {
 
     public List<Product> getInactiveProducts() {
         return productDAO.getInactiveProducts();
+    }
+
+    public List<Product> getProductsBelowMinStock() {
+        return productDAO.getProductsBelowMinStock();
     }
 
 

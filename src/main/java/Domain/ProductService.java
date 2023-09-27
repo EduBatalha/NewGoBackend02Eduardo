@@ -4,6 +4,7 @@ import Infrastructure.dao.ProductDAO;
 import Infrastructure.Entity.Product;
 
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Date;
 import java.util.ResourceBundle;
@@ -18,6 +19,37 @@ public class ProductService {
         // Lógica para obter todos os produtos do banco de dados
         return productDAO.getAllProducts();
     }
+
+    public List<Product> getActiveProducts() {
+        // Lógica para obter todos os produtos ativos do banco de dados
+        return productDAO.getActiveProducts();
+    }
+
+    public Product getActiveProductByHash(UUID productHash) {
+        if (productDAO.doesProductExist(productHash)) {
+            // Verifique se o produto está ativo
+            if (productDAO.isProductActive(productHash)) {
+                // Se estiver ativo, obtenha o produto
+                return productDAO.getActiveProductByHash(productHash);
+            } else {
+                throw new IllegalArgumentException(messages.getString("error.productNotActive"));
+            }
+        } else {
+            throw new IllegalArgumentException(messages.getString("error.productNotFound"));
+        }
+    }
+
+    public Product getProductByHash(UUID productHash) {
+        if (productDAO.doesProductExist(productHash)) {
+            // Se o produto existir, obtenha o produto
+            return productDAO.getProductByHash(productHash);
+        } else {
+            throw new IllegalArgumentException(messages.getString("error.productNotFound"));
+        }
+    }
+
+
+
 
     public void createProduct(Product product) {
         // Verificar duplicação de nome e EAN13 (RN002 e RN003)
@@ -104,6 +136,5 @@ public class ProductService {
 
         return true;
     }
-
 
 }

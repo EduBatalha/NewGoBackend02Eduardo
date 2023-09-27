@@ -150,6 +150,36 @@ public class ProductDAO {
         return null; // Retorna null se o produto não for encontrado ou não estiver ativo
     }
 
+    public List<Product> getProductsBelowMinStock() {
+        List<Product> products = new ArrayList<>();
+        String query = "SELECT * FROM produto WHERE quantidade < estoque_min AND lativo = true";
+
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query);
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                Product product = new Product();
+                product.setId(resultSet.getInt("id"));
+                product.setHash(UUID.fromString(resultSet.getString("hash")));
+                product.setName(resultSet.getString("nome"));
+                product.setDescription(resultSet.getString("descricao"));
+                product.setEan13(resultSet.getString("ean13"));
+                product.setPrice(resultSet.getDouble("preco"));
+                product.setQuantity(resultSet.getDouble("quantidade"));
+                product.setMinStock(resultSet.getDouble("estoque_min"));
+                product.setLativo(resultSet.getBoolean("lativo"));
+                products.add(product);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Trate a exceção ou propague-a conforme necessário
+            throw new RuntimeException(e);
+        }
+        return products;
+    }
+
+
 
     public boolean doesProductExist(UUID productHash) {
         String query = "SELECT COUNT(*) FROM produto WHERE hash = ?";

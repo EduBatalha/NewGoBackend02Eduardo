@@ -25,6 +25,11 @@ public class ProductService {
         return productDAO.getActiveProducts();
     }
 
+    public List<Product> getInactiveProducts() {
+        return productDAO.getInactiveProducts();
+    }
+
+
     public Product getActiveProductByHash(UUID productHash) {
         if (productDAO.doesProductExist(productHash)) {
             // Verifique se o produto está ativo
@@ -47,8 +52,6 @@ public class ProductService {
             throw new IllegalArgumentException(messages.getString("error.productNotFound"));
         }
     }
-
-
 
 
     public void createProduct(Product product) {

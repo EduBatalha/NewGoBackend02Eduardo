@@ -45,49 +45,75 @@ public class ProductServlet extends HttpServlet {
             if (parts.length == 4 && "products".equals(parts[2])) {
                 String hash = parts[3];
 
-                // Verifique se o query parameter "active" está presente e definido como "true"
+                // Verifique se o query parameter "active" está presente
                 String activeParam = request.getParameter("active");
-                boolean onlyActive = activeParam != null && activeParam.equalsIgnoreCase("true");
 
-                Product product = null;
+                if (activeParam != null) {
+                    boolean onlyActive = activeParam.equalsIgnoreCase("true");
 
-                if (onlyActive) {
-                    // Consulta apenas o produto ativo pelo hash
-                    product = productService.getActiveProductByHash(UUID.fromString(hash));
-                } else {
-                    // Consulta o produto pelo hash, independentemente do status
-                    product = productService.getProductByHash(UUID.fromString(hash));
-                }
+                    Product product = null;
 
-                if (product != null) {
-                    String jsonProduct = gson.toJson(product);
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
+                    if (onlyActive) {
+                        // Consulta apenas o produto ativo pelo hash
+                        product = productService.getActiveProductByHash(UUID.fromString(hash));
+                    }
+                    if (product != null) {
+                        String jsonProduct = gson.toJson(product);
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
 
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(jsonProduct);
+                        try (PrintWriter out = response.getWriter()) {
+                            out.print(jsonProduct);
+                        }
+                    } else {
+                        // Produto não encontrado ou não corresponde ao status especificado
+                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                        JsonObject errorJson = new JsonObject();
+                        errorJson.addProperty("error", messages.getString("error.inactiveOrNotFound"));
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
+                        try (PrintWriter out = response.getWriter()) {
+                            out.print(errorJson.toString());
+                        }
                     }
                 } else {
-                    // Produto não encontrado ou não está ativo
-                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    JsonObject errorJson = new JsonObject();
-                    errorJson.addProperty("error", messages.getString("error.inactiveOrNotFound"));
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(errorJson.toString());
+                    // Consulta o produto pelo hash, independentemente do status
+                    Product product = productService.getProductByHash(UUID.fromString(hash));
+
+                    if (product != null) {
+                        String jsonProduct = gson.toJson(product);
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
+
+                        try (PrintWriter out = response.getWriter()) {
+                            out.print(jsonProduct);
+                        }
+                    } else {
+                        // Produto não encontrado
+                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                        JsonObject errorJson = new JsonObject();
+                        errorJson.addProperty("error", messages.getString("error.notFound"));
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
+                        try (PrintWriter out = response.getWriter()) {
+                            out.print(errorJson.toString());
+                        }
                     }
                 }
             } else {
                 // Consulta todos os produtos ou lida com outras consultas de produtos aqui, se necessário
                 String activeParam = request.getParameter("active");
                 boolean onlyActive = activeParam != null && activeParam.equalsIgnoreCase("true");
+                boolean onlyInactive = activeParam != null && activeParam.equalsIgnoreCase("false");
 
                 List<Product> products = null;
 
                 if (onlyActive) {
                     // Consulta apenas produtos ativos
                     products = productService.getActiveProducts();
+                } else if (onlyInactive) {
+                    // Consulta apenas produtos inativos
+                    products = productService.getInactiveProducts();
                 } else {
                     // Consulta todos os produtos
                     products = productService.getAllProducts();
@@ -117,6 +143,7 @@ public class ProductServlet extends HttpServlet {
             handleException(response, e);
         }
     }
+
 
 
 

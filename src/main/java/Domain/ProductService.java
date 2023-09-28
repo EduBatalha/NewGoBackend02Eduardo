@@ -3,6 +3,7 @@ package Domain;
 import Application.dto.ProductBatchDTO;
 import Application.dto.ProductDTO;
 import Application.dto.ProductPriceUpdateDTO;
+import Application.dto.ProductQuantityUpdateDTO;
 import Infrastructure.dao.ProductDAO;
 import Infrastructure.Entity.Product;
 import com.google.gson.Gson;
@@ -183,8 +184,8 @@ public class ProductService {
         for (ProductPriceUpdateDTO update : updates) {
             Product product = productDAO.getProductByHash(update.getHash());
 
-            // Verifique se o produto está ativo antes de atualizar, exceto para reativação (RN020)
-            if (!product.isLativo() && !update.getOperacao().equalsIgnoreCase("definir")) {
+            // Verifique se o produto está ativo antes de atualizar
+            if (!product.isLativo()) {
                 erroProdutos.add( messages.getString("error.cannotUpdateInactiveProduct") + ": " + update.getHash());
             } else {
                 double novoPreco = calcularNovoPreco(product.getPrice(), update);
@@ -194,9 +195,9 @@ public class ProductService {
                 boolean atualizacaoBemSucedida = productDAO.updateProduct(product);
 
                 if (atualizacaoBemSucedida) {
-                    produtosAtualizados.add(messages.getString("product.create.success") + ": " + update.getHash().toString());
+                    produtosAtualizados.add(messages.getString("product.update.success") + ": " + update.getHash().toString());
                 } else {
-                    erroProdutos.add("Falha ao atualizar produto com hash " + update.getHash());
+                    erroProdutos.add(messages.getString("product.update.error") + update.getHash());
                 }
             }
         }
@@ -244,6 +245,67 @@ public class ProductService {
         product.setPrice(novoPreco);
     }
 
+    public JsonObject updateProductQuantitiesInBatch(ProductQuantityUpdateDTO[] updates) {
+        List<JsonObject> errorProducts = new ArrayList<>();
+        List<JsonObject> successProducts = new ArrayList<>();
+
+        for (ProductQuantityUpdateDTO update : updates) {
+            Product product = productDAO.getProductByHash(update.getHash());
+
+            if (product != null) {
+                // Verificar se a quantidade é não negativa
+                if (update.getQuantidade() >= 0) {
+                    // Verificar se o produto está ativo antes de atualizar
+                    if (product.isLativo()) {
+                        // Atualize a quantidade do produto
+                        product.setQuantity(update.getQuantidade());
+                        boolean atualizacaoBemSucedida = productDAO.updateProduct(product);
+
+                        if (atualizacaoBemSucedida) {
+                            JsonObject successProduct = new JsonObject();
+                            successProduct.addProperty("hash", product.getHash().toString());
+                            successProduct.addProperty("quantidade", product.getQuantity());
+                            successProducts.add(successProduct);
+                        } else {
+                            JsonObject errorProduct = new JsonObject();
+                            errorProduct.addProperty("hash", product.getHash().toString());
+                            errorProduct.addProperty("error", messages.getString("product.update.error"));
+                            errorProducts.add(errorProduct);
+                        }
+                    } else {
+                        // Produto inativo, lançar exceção
+                        JsonObject errorProduct = new JsonObject();
+                        errorProduct.addProperty("hash", product.getHash().toString());
+                        errorProduct.addProperty("error", messages.getString("product.cannotUpdateInactiveProduct"));
+                        errorProducts.add(errorProduct);
+                    }
+                } else {
+                    JsonObject errorProduct = new JsonObject();
+                    errorProduct.addProperty("hash", product.getHash().toString());
+                    errorProduct.addProperty("error", messages.getString("product.negativeQuantity"));
+                    errorProducts.add(errorProduct);
+                }
+            } else {
+                JsonObject errorProduct = new JsonObject();
+                errorProduct.addProperty("hash", update.getHash().toString());
+                errorProduct.addProperty("error", messages.getString("product.productNotFound"));
+                errorProducts.add(errorProduct);
+            }
+        }
+
+        JsonObject result = new JsonObject();
+
+        if (!successProducts.isEmpty()) {
+            result.add("success", gson.toJsonTree(successProducts));
+        }
+
+        if (!errorProducts.isEmpty()) {
+            result.add("error", gson.toJsonTree(errorProducts));
+        }
+
+        return result;
+    }
+
     public void deleteProduct(UUID productHash) {
         // Verificar se o produto com o hash especificado existe no banco de dados
         boolean productExists = productDAO.doesProductExist(productHash);
@@ -275,5 +337,4 @@ public class ProductService {
 
         return true;
     }
-
 }

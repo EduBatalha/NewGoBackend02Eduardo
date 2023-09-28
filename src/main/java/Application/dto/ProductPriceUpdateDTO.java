@@ -6,7 +6,6 @@ public class ProductPriceUpdateDTO {
     private UUID hash;
     private String operacao; // Pode ser "somar", "subtrair" ou "definir"
     private String valor; // Pode ser um número ou uma porcentagem representada como "20%"
-    private String campo; // Campo a ser atualizado ("preco")
 
     public UUID getHash() {
         return hash;
@@ -30,13 +29,5 @@ public class ProductPriceUpdateDTO {
 
     public void setValor(String valor) {
         this.valor = valor;
-    }
-
-    public String getCampo() {
-        return campo;
-    }
-
-    public void setCampo(String campo) {
-        this.campo = campo;
     }
 }

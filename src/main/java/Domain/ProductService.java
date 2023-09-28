@@ -1,17 +1,19 @@
 package Domain;
 
+import Application.dto.ProductBatchDTO;
+import Application.dto.ProductDTO;
 import Infrastructure.dao.ProductDAO;
 import Infrastructure.Entity.Product;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
-
-import java.util.List;
-import java.util.Date;
-import java.util.ResourceBundle;
-import java.util.UUID;
+import java.util.*;
 
 
 public class ProductService {
     private ProductDAO productDAO = new ProductDAO();
+    private Gson gson = new Gson();
+
     private static final ResourceBundle messages = ResourceBundle.getBundle("messages");
 
     public List<Product> getAllProducts() {
@@ -58,36 +60,38 @@ public class ProductService {
 
 
     public void createProduct(Product product) {
+        List<String> errors = new ArrayList<>();
+
         // Verificar duplicação de nome e EAN13 (RN002 e RN003)
         if (productDAO.isProductNameDuplicate(product.getName())) {
-            throw new IllegalArgumentException(messages.getString("error.duplicateName"));
+            errors.add(messages.getString("error.duplicateName"));
         }
-
         if (productDAO.isProductEan13Duplicate(product.getEan13())) {
-            throw new IllegalArgumentException(messages.getString("error.duplicateEAN13"));
+            errors.add(messages.getString("error.duplicateEAN13"));
         }
 
         // Verificar se preço, quantidade ou estoque mínimo são negativos (RN004)
         if (product.getPrice() < 0) {
-            throw new IllegalArgumentException(messages.getString("error.negativePrice"));
+            errors.add(messages.getString("error.negativePrice"));
         }
         if (product.getQuantity() < 0) {
-            throw new IllegalArgumentException(messages.getString("error.negativeQuantity"));
+            errors.add(messages.getString("error.negativeQuantity"));
         }
-
         if (product.getMinStock() < 0) {
-            throw new IllegalArgumentException(messages.getString("error.negativeMinStock"));
+            errors.add(messages.getString("error.negativeMinStock"));
         }
 
-        // Define a data de criação como a data e hora atual
+        // Se houver erros, lance a exceção com a lista de erros
+        if (!errors.isEmpty()) {
+            throw new IllegalArgumentException(String.join(", ", errors));
+        }
+
+        // Se não houver erros, continue com a criação do produto
         product.setDtCreate(new Date());
-
-        // Preencher lativo com falso (RN009)
         product.setLativo(false);
-
-        // Chamar o método do DAO para criar o produto
         productDAO.createProduct(product);
     }
+
 
 
     public boolean updateProduct(UUID productHash, Product updatedProduct) {
@@ -141,6 +145,62 @@ public class ProductService {
         }
 
         return true;
+    }
+
+    public JsonObject createProductsInBatch(ProductBatchDTO batchDTO) {
+        // Inicialize listas para rastrear produtos com sucesso e erros
+        List<JsonObject> errorProducts = new ArrayList<>();
+
+        // Acesse a lista de produtos do DTO
+        List<ProductDTO> products = batchDTO.getProductDTOs();
+        boolean success = false; // Variável para rastrear o sucesso
+
+        // Itere sobre cada produto no lote
+        for (ProductDTO productDTO : products) {
+            try {
+                // Converte o DTO em um objeto Product
+                Product product = convertProductDTO(productDTO);
+
+                // Tente cadastrar o produto
+                createProduct(product);
+
+                // Se o produto for cadastrado com sucesso, defina a variável de sucesso como verdadeira
+                success = true;
+            } catch (IllegalArgumentException e) {
+                // Se ocorrer uma exceção, capture o erro e crie um objeto JSON para representar o erro
+                JsonObject error = new JsonObject();
+                error.addProperty("nome", productDTO.getNome());
+                error.addProperty("ean13", productDTO.getEan13());
+                error.addProperty("error", e.getMessage());
+                errorProducts.add(error);
+            }
+        }
+
+        // Crie um objeto JSON para representar o resultado
+        JsonObject result = new JsonObject();
+        result.add("errors", gson.toJsonTree(errorProducts));
+
+        // Se algum produto foi cadastrado com sucesso, adicione a parte de sucesso
+        if (success) {
+            result.addProperty("sucesso", "Produto(s) cadastrado(s) com sucesso");
+        }
+
+        return result;
+    }
+
+
+
+
+    // Método auxiliar para converter ProductDTO em Product
+    private Product convertProductDTO(ProductDTO productDTO) {
+        Product product = new Product();
+        product.setName(productDTO.getNome());
+        product.setDescription(productDTO.getDescricao());
+        product.setEan13(productDTO.getEan13());
+        product.setPrice(productDTO.getPreco());
+        product.setQuantity(productDTO.getQuantidade());
+        product.setMinStock(productDTO.getEstoqueMin());
+        return product;
     }
 
 }

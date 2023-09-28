@@ -6,9 +6,7 @@ import Infrastructure.Entity.Product;
 import Infrastructure.dao.ProductDAO;
 import Domain.ProductService;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -221,9 +219,6 @@ public class ProductServlet extends HttpServlet {
             handleException(response, e);
         }
     }
-
-
-
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {

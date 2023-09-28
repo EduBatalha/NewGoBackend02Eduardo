@@ -208,8 +208,7 @@ public class ProductDAO {
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    boolean lativo = resultSet.getBoolean("lativo");
-                    return lativo;
+                    return resultSet.getBoolean("lativo");
                 }
             }
         } catch (SQLException e) {

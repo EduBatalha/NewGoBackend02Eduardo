@@ -2,6 +2,7 @@ package Domain;
 
 import Application.dto.ProductBatchDTO;
 import Application.dto.ProductDTO;
+import Application.dto.ProductPriceUpdateDTO;
 import Infrastructure.dao.ProductDAO;
 import Infrastructure.Entity.Product;
 import com.google.gson.Gson;
@@ -92,6 +93,67 @@ public class ProductService {
         productDAO.createProduct(product);
     }
 
+    public JsonObject createProductsInBatch(ProductBatchDTO batchDTO) {
+        // Inicialize listas para rastrear produtos com sucesso e erros
+        List<JsonObject> errorProducts = new ArrayList<>();
+        List<JsonObject> successProducts = new ArrayList<>();
+
+        // Acesse a lista de produtos do DTO
+        List<ProductDTO> products = batchDTO.getProductDTOs();
+
+        // Itere sobre cada produto no lote
+        for (ProductDTO productDTO : products) {
+            try {
+                // Converte o DTO em um objeto Product
+                Product product = convertProductDTO(productDTO);
+
+                // Tente cadastrar o produto
+                createProduct(product);
+
+                // Se o produto for cadastrado com sucesso, adicione-o à lista de sucesso
+                JsonObject successProduct = new JsonObject();
+                successProduct.addProperty("nome", productDTO.getNome());
+                successProduct.addProperty("ean13", productDTO.getEan13());
+                successProducts.add(successProduct);
+            } catch (IllegalArgumentException e) {
+                // Se ocorrer uma exceção, capture o erro e crie um objeto JSON para representar o erro
+                JsonObject errorProduct = new JsonObject();
+                errorProduct.addProperty("nome", productDTO.getNome());
+                errorProduct.addProperty("ean13", productDTO.getEan13());
+                errorProduct.addProperty("error", e.getMessage());
+                errorProducts.add(errorProduct);
+            }
+        }
+
+        // Crie um objeto JSON para representar o resultado
+        JsonObject result = new JsonObject();
+
+        // Adicione a lista de produtos com sucesso ao resultado
+        if (!successProducts.isEmpty()) {
+            result.add("success", gson.toJsonTree(successProducts));
+        }
+
+        // Adicione a lista de produtos com erro ao resultado
+        if (!errorProducts.isEmpty()) {
+            result.add("error", gson.toJsonTree(errorProducts));
+        }
+
+        return result;
+    }
+
+
+
+    // Método auxiliar para converter ProductDTO em Product
+    private Product convertProductDTO(ProductDTO productDTO) {
+        Product product = new Product();
+        product.setName(productDTO.getNome());
+        product.setDescription(productDTO.getDescricao());
+        product.setEan13(productDTO.getEan13());
+        product.setPrice(productDTO.getPreco());
+        product.setQuantity(productDTO.getQuantidade());
+        product.setMinStock(productDTO.getEstoqueMin());
+        return product;
+    }
 
 
     public boolean updateProduct(UUID productHash, Product updatedProduct) {
@@ -114,6 +176,73 @@ public class ProductService {
         return productDAO.updateProduct(updatedProduct);
     }
 
+    public Map<String, Object> updateProductPricesInBatch(List<ProductPriceUpdateDTO> updates) {
+        List<String> erroProdutos = new ArrayList<>();
+        List<String> produtosAtualizados = new ArrayList<>();
+
+        for (ProductPriceUpdateDTO update : updates) {
+            Product product = productDAO.getProductByHash(update.getHash());
+
+            // Verifique se o produto está ativo antes de atualizar, exceto para reativação (RN020)
+            if (!product.isLativo() && !update.getOperacao().equalsIgnoreCase("definir")) {
+                erroProdutos.add( messages.getString("error.cannotUpdateInactiveProduct") + ": " + update.getHash());
+            } else {
+                double novoPreco = calcularNovoPreco(product.getPrice(), update);
+
+                // Atualize o campo "preco" do produto diretamente
+                updateProductPrice(product, novoPreco);
+                boolean atualizacaoBemSucedida = productDAO.updateProduct(product);
+
+                if (atualizacaoBemSucedida) {
+                    produtosAtualizados.add(messages.getString("product.create.success") + ": " + update.getHash().toString());
+                } else {
+                    erroProdutos.add("Falha ao atualizar produto com hash " + update.getHash());
+                }
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("erroProdutos", erroProdutos);
+        result.put("produtosAtualizados", produtosAtualizados);
+
+        return result;
+    }
+
+
+    // Método para calcular o novo preço com base na operação
+    private double calcularNovoPreco(double precoAtual, ProductPriceUpdateDTO update) {
+        double valorParaAdicionar = parseValor(update.getValor());
+
+        if (update.getOperacao().equalsIgnoreCase("subtrair")) {
+            valorParaAdicionar = -valorParaAdicionar;
+        }
+
+        double novoPreco;
+        if (update.getOperacao().equalsIgnoreCase("definir")) {
+            novoPreco = valorParaAdicionar; // Definir para um valor específico
+        } else {
+            novoPreco = precoAtual + valorParaAdicionar;
+        }
+
+        return novoPreco;
+    }
+
+    // Método para analisar e converter o valor (porcentagem ou valor fixo)
+    private double parseValor(String valor) {
+        if (valor.endsWith("%")) {
+            // Valor é uma porcentagem
+            double percent = Double.parseDouble(valor.replace("%", ""));
+            return percent / 100.0; // Converter para a fração correspondente
+        } else {
+            // Valor é um número
+            return Double.parseDouble(valor);
+        }
+    }
+
+    // Método para atualizar o campo "preco" de um produto
+    private void updateProductPrice(Product product, double novoPreco) {
+        product.setPrice(novoPreco);
+    }
 
     public void deleteProduct(UUID productHash) {
         // Verificar se o produto com o hash especificado existe no banco de dados
@@ -145,62 +274,6 @@ public class ProductService {
         }
 
         return true;
-    }
-
-    public JsonObject createProductsInBatch(ProductBatchDTO batchDTO) {
-        // Inicialize listas para rastrear produtos com sucesso e erros
-        List<JsonObject> errorProducts = new ArrayList<>();
-
-        // Acesse a lista de produtos do DTO
-        List<ProductDTO> products = batchDTO.getProductDTOs();
-        boolean success = false; // Variável para rastrear o sucesso
-
-        // Itere sobre cada produto no lote
-        for (ProductDTO productDTO : products) {
-            try {
-                // Converte o DTO em um objeto Product
-                Product product = convertProductDTO(productDTO);
-
-                // Tente cadastrar o produto
-                createProduct(product);
-
-                // Se o produto for cadastrado com sucesso, defina a variável de sucesso como verdadeira
-                success = true;
-            } catch (IllegalArgumentException e) {
-                // Se ocorrer uma exceção, capture o erro e crie um objeto JSON para representar o erro
-                JsonObject error = new JsonObject();
-                error.addProperty("nome", productDTO.getNome());
-                error.addProperty("ean13", productDTO.getEan13());
-                error.addProperty("error", e.getMessage());
-                errorProducts.add(error);
-            }
-        }
-
-        // Crie um objeto JSON para representar o resultado
-        JsonObject result = new JsonObject();
-        result.add("errors", gson.toJsonTree(errorProducts));
-
-        // Se algum produto foi cadastrado com sucesso, adicione a parte de sucesso
-        if (success) {
-            result.addProperty("sucesso", "Produto(s) cadastrado(s) com sucesso");
-        }
-
-        return result;
-    }
-
-
-
-
-    // Método auxiliar para converter ProductDTO em Product
-    private Product convertProductDTO(ProductDTO productDTO) {
-        Product product = new Product();
-        product.setName(productDTO.getNome());
-        product.setDescription(productDTO.getDescricao());
-        product.setEan13(productDTO.getEan13());
-        product.setPrice(productDTO.getPreco());
-        product.setQuantity(productDTO.getQuantidade());
-        product.setMinStock(productDTO.getEstoqueMin());
-        return product;
     }
 
 }

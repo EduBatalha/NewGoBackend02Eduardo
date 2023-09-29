@@ -276,7 +276,7 @@ public class ProductService {
                         // Produto inativo, lançar exceção
                         JsonObject errorProduct = new JsonObject();
                         errorProduct.addProperty("hash", product.getHash().toString());
-                        errorProduct.addProperty("error", messages.getString("product.cannotUpdateInactiveProduct"));
+                        errorProduct.addProperty("error", messages.getString("error.cannotUpdateInactiveProduct"));
                         errorProducts.add(errorProduct);
                     }
                 } else {

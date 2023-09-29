@@ -4,6 +4,7 @@ import Infrastructure.PostgreSQLConnection;
 import Infrastructure.Entity.Product;
 
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +26,8 @@ public class ProductDAO {
                 product.setPrice(resultSet.getDouble("preco"));
                 product.setQuantity(resultSet.getDouble("quantidade"));
                 product.setMinStock(resultSet.getDouble("estoque_min"));
+                product.setDtCreate(resultSet.getDate("dtcreate"));
+                product.setDtUpdate(resultSet.getDate("dtupdate"));
                 product.setLativo(resultSet.getBoolean("lativo"));
                 products.add(product);
             }
@@ -53,6 +56,8 @@ public class ProductDAO {
                 product.setPrice(resultSet.getDouble("preco"));
                 product.setQuantity(resultSet.getDouble("quantidade"));
                 product.setMinStock(resultSet.getDouble("estoque_min"));
+                product.setDtCreate(resultSet.getDate("dtcreate"));
+                product.setDtUpdate(resultSet.getDate("dtupdate"));
                 product.setLativo(resultSet.getBoolean("lativo"));
                 activeProducts.add(product);
             }
@@ -81,6 +86,8 @@ public class ProductDAO {
                 product.setPrice(resultSet.getDouble("preco"));
                 product.setQuantity(resultSet.getDouble("quantidade"));
                 product.setMinStock(resultSet.getDouble("estoque_min"));
+                product.setDtCreate(resultSet.getDate("dtcreate"));
+                product.setDtUpdate(resultSet.getDate("dtupdate"));
                 product.setLativo(resultSet.getBoolean("lativo"));
                 activeProducts.add(product);
             }
@@ -109,6 +116,8 @@ public class ProductDAO {
                     product.setPrice(resultSet.getDouble("preco"));
                     product.setQuantity(resultSet.getDouble("quantidade"));
                     product.setMinStock(resultSet.getDouble("estoque_min"));
+                    product.setDtCreate(resultSet.getDate("dtcreate"));
+                    product.setDtUpdate(resultSet.getDate("dtupdate"));
                     product.setLativo(resultSet.getBoolean("lativo"));
                     return product;
                 }
@@ -138,6 +147,8 @@ public class ProductDAO {
                     product.setPrice(resultSet.getDouble("preco"));
                     product.setQuantity(resultSet.getDouble("quantidade"));
                     product.setMinStock(resultSet.getDouble("estoque_min"));
+                    product.setDtCreate(resultSet.getDate("dtcreate"));
+                    product.setDtUpdate(resultSet.getDate("dtupdate"));
                     product.setLativo(resultSet.getBoolean("lativo"));
                     return product;
                 }
@@ -168,6 +179,8 @@ public class ProductDAO {
                 product.setPrice(resultSet.getDouble("preco"));
                 product.setQuantity(resultSet.getDouble("quantidade"));
                 product.setMinStock(resultSet.getDouble("estoque_min"));
+                product.setDtCreate(resultSet.getDate("dtcreate"));
+                product.setDtUpdate(resultSet.getDate("dtupdate"));
                 product.setLativo(resultSet.getBoolean("lativo"));
                 products.add(product);
             }

@@ -177,7 +177,7 @@ public class ProductServlet extends HttpServlet {
                     }
                 }
             } else {
-                // Consulta outros tipos de produtos ou lida com outras consultas aqui, se necessário
+                // Consulta outros tipos de produtos
                 String activeParam = request.getParameter("active");
                 boolean onlyActive = activeParam != null && activeParam.equalsIgnoreCase("true");
                 boolean onlyInactive = activeParam != null && activeParam.equalsIgnoreCase("false");

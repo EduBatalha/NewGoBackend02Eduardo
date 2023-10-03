@@ -1,9 +1,6 @@
 package Domain;
 
-import Application.dto.ProductBatchDTO;
-import Application.dto.ProductDTO;
-import Application.dto.ProductPriceUpdateDTO;
-import Application.dto.ProductQuantityUpdateDTO;
+import Application.dto.*;
 import Infrastructure.dao.ProductDAO;
 import Infrastructure.Entity.Product;
 import com.google.gson.Gson;
@@ -156,26 +153,64 @@ public class ProductService {
         return product;
     }
 
+    public boolean updateProduct(ProductUpdateDTO updateDTO) {
+        // Verifique se os campos obrigatórios estão presentes
+        List<String> missingFields = new ArrayList<>();
+        if (updateDTO.getHash() == null) {
+            missingFields.add("hash");
+        }
+        if (updateDTO.getDescricao() == null) {
+            missingFields.add("descricao");
+        }
+        if (updateDTO.getPreco() <= 0) {
+            missingFields.add("preco");
+        }
+        if (updateDTO.getQuantidade() <= 0) {
+            missingFields.add("quantidade");
+        }
+        if (updateDTO.getEstoqueMin() <= 0) {
+            missingFields.add("estoque_min");
+        }
 
-    public boolean updateProduct(UUID productHash, Product updatedProduct) {
+        if (!missingFields.isEmpty()) {
+            // Campos obrigatórios ausentes, lançar uma exceção com a lista de campos ausentes
+            throw new IllegalArgumentException("Campos obrigatórios ausentes: " + String.join(", ", missingFields));
+        }
+
+        // Obtenha o hash do DTO
+        String productHash = updateDTO.getHash();
+
+        // Crie um objeto Product e configure-o com base no DTO
+        Product updatedProduct = new Product();
+        updatedProduct.setHash(UUID.fromString(productHash));
+        updatedProduct.setDescription(updateDTO.getDescricao());
+        updatedProduct.setPrice(updateDTO.getPreco());
+        updatedProduct.setQuantity(updateDTO.getQuantidade());
+        updatedProduct.setMinStock(updateDTO.getEstoqueMin());
+
+        // Define a data de atualização como a data e hora atual
+        updatedProduct.setDtUpdate(new Date());
+
         // Verificar se o produto com o hash especificado existe no banco de dados
-        boolean productExists = productDAO.doesProductExist(productHash);
+        boolean productExists = productDAO.doesProductExist(UUID.fromString(productHash));
 
         if (!productExists) {
             throw new IllegalArgumentException(messages.getString("error.productNotFound"));
         }
 
         // Verificar se o campo 'lativo' é verdadeiro antes de permitir a atualização
-        if (!productDAO.isProductActive(productHash)) {
+        if (!productDAO.isProductActive(UUID.fromString(productHash))) {
             throw new IllegalArgumentException(messages.getString("error.cannotUpdateInactiveProduct"));
         }
 
-        // Define a data de atualização como a data e hora atual
-        updatedProduct.setDtUpdate(new Date());
+        // Restante do código para atualizar o produto no banco de dados usando o ProductDAO
 
         // Atualize o produto no banco de dados usando o ProductDAO
         return productDAO.updateProduct(updatedProduct);
     }
+
+
+
 
     public Map<String, Object> updateProductPricesInBatch(List<ProductPriceUpdateDTO> updates) {
         List<String> erroProdutos = new ArrayList<>();

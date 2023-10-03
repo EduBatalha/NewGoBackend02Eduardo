@@ -276,78 +276,14 @@ public class ProductServlet extends HttpServlet {
             BufferedReader reader = request.getReader();
             JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
 
-            // Encontre os campos não desejados do JSON e colete os nomes
-            Set<String> allowedFields = new HashSet<>(Arrays.asList("descricao", "preco", "quantidade", "estoque_min"));
-            Set<String> jsonFields = jsonObject.keySet();
-            List<String> removedFields = new ArrayList<>();
-            jsonFields.removeIf(field -> {
-                if (!allowedFields.contains(field)) {
-                    removedFields.add(field);
-                    return true;
-                }
-                return false;
-            });
-
-            // Se campos não desejados forem encontrados, retorne uma mensagem
-            if (!removedFields.isEmpty()) {
-                JsonObject removedFieldsJson = new JsonObject();
-                removedFieldsJson.addProperty("error", messages.getString("product.invalid.field") + (": ") + String.join(", ", removedFields));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(removedFieldsJson));
-                return;
-            }
-
-
             // Crie um objeto ProductUpdateDTO com base no JSON
             ProductUpdateDTO updateDTO = gson.fromJson(jsonObject, ProductUpdateDTO.class);
 
             // Configure a hash no DTO
             updateDTO.setHash(hash);
 
-            // Verifique se os campos obrigatórios estão presentes
-            List<String> missingFields = new ArrayList<>();
-            if (updateDTO.getHash() == null) {
-                missingFields.add("hash");
-            }
-            if (updateDTO.getDescricao() == null) {
-                missingFields.add("descricao");
-            }
-            if (updateDTO.getPreco() <= 0) {
-                missingFields.add("preco");
-            }
-            if (updateDTO.getQuantidade() <= 0) {
-                missingFields.add("quantidade");
-            }
-            if (updateDTO.getEstoqueMin() <= 0) {
-                missingFields.add("estoque_min");
-            }
-
-            if (!missingFields.isEmpty()) {
-                // Campos obrigatórios ausentes, retorne um erro no corpo JSON
-                JsonObject errorJson = new JsonObject();
-                errorJson.addProperty("error", messages.getString("product.missing.field")+ String.join(", ", missingFields));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(errorJson));
-                return;
-            }
-
-
-            // Crie um objeto Product com base no DTO
-            Product updatedProduct = new Product();
-            updatedProduct.setHash(UUID.fromString(updateDTO.getHash()));
-
-            // Define os campos a serem atualizados no objeto Product com base no DTO
-            updatedProduct.setDescription(updateDTO.getDescricao());
-            updatedProduct.setPrice(updateDTO.getPreco());
-            updatedProduct.setQuantity(updateDTO.getQuantidade());
-            updatedProduct.setMinStock(updateDTO.getEstoqueMin());
-
-            // Atualize o produto usando o ProductService
-            boolean updated = productService.updateProduct(updatedProduct.getHash(), updatedProduct);
+            // Chame o serviço para atualizar o produto
+            boolean updated = productService.updateProduct(updateDTO);
 
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
@@ -366,6 +302,7 @@ public class ProductServlet extends HttpServlet {
             handleException(response, e);
         }
     }
+
 
     protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {

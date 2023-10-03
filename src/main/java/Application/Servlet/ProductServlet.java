@@ -1,12 +1,12 @@
 package Application.Servlet;
 
-import Application.dto.ProductDTO;
-import Application.dto.ProductUpdateDTO;
+import Application.dto.*;
 import Infrastructure.Entity.Product;
 import Infrastructure.dao.ProductDAO;
 import Domain.ProductService;
 
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Type;
 import java.util.*;
 
 @WebServlet("/products/*")
@@ -223,35 +224,134 @@ public class ProductServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            BufferedReader reader = request.getReader();
-            JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
-            ProductDTO newProductDTO = gson.fromJson(jsonObject, ProductDTO.class);
+            String requestURI = request.getRequestURI();
 
-            // Converta o ProductDTO para um objeto Product
-            Product newProduct = new Product(
-                    newProductDTO.getNome(),
-                    newProductDTO.getDescricao(),
-                    newProductDTO.getEan13(),
-                    newProductDTO.getPreco(),
-                    newProductDTO.getQuantidade(),
-                    newProductDTO.getEstoqueMin()
-            );
+            if (requestURI.endsWith("/batch")) {
+                // É um lote de produtos
 
-            productService.createProduct(newProduct);
+                // Lê o JSON de entrada da solicitação HTTP
+                BufferedReader reader = request.getReader();
+                StringBuilder jsonInput = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    jsonInput.append(line);
+                }
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
+                // Faz o parsing do JSON em um array de ProductDTO usando Gson
+                Type listType = new TypeToken<List<ProductDTO>>() {}.getType();
+                List<ProductDTO> productDTOs = gson.fromJson(jsonInput.toString(), listType);
 
-            JsonObject confirmation = new JsonObject();
-            confirmation.addProperty("message", messages.getString("product.create.success"));
+                // Crie um objeto ProductBatchDTO e configure sua lista de produtos
+                ProductBatchDTO batchDTO = new ProductBatchDTO();
+                batchDTO.setProductDTOs(productDTOs);
 
-            try (PrintWriter out = response.getWriter()) {
-                out.print(gson.toJson(confirmation));
+                // Chama o método createProductsInBatch para processar o lote de produtos
+                JsonObject result = productService.createProductsInBatch(batchDTO);
+
+                // Configura a resposta HTTP
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+
+                // Escreve o resultado JSON como resposta
+                try (PrintWriter out = response.getWriter()) {
+                    out.print(result.toString());
+                }
+            } else if (requestURI.endsWith("/batch-price-update")) {
+                // É uma atualização de preços em lote
+
+                // Ler o JSON de entrada da solicitação HTTP
+                BufferedReader reader = request.getReader();
+                StringBuilder jsonInput = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    jsonInput.append(line);
+                }
+
+                // Fazer o parsing do JSON em uma lista de ProductPriceUpdateDTO usando Gson
+                ProductPriceUpdateDTO[] updates = gson.fromJson(jsonInput.toString(), ProductPriceUpdateDTO[].class);
+
+                // Chamar o método para atualizar os preços em lote
+                Map<String, Object> batchResult = productService.updateProductPricesInBatch(Arrays.asList(updates));
+                List<String> erroProdutos = (List<String>) batchResult.get("erroProdutos");
+                List<String> produtosAtualizados = (List<String>) batchResult.get("produtosAtualizados");
+
+                // Configurar a resposta HTTP
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+
+                // Construir um objeto JSON para a resposta
+                JsonObject jsonResponse = new JsonObject();
+
+                if (!erroProdutos.isEmpty()) {
+                    jsonResponse.addProperty("error", String.join(" - ", erroProdutos));
+                }
+
+                if (!produtosAtualizados.isEmpty()) {
+                    jsonResponse.addProperty("message", String.join(" - ", produtosAtualizados));
+                }
+
+                try (PrintWriter out = response.getWriter()) {
+                    out.print(jsonResponse.toString());
+                }
+            } else if (requestURI.endsWith("/batch-quantity-update")) {
+                // É uma atualização de quantidade em lote
+
+                // Ler o JSON de entrada da solicitação HTTP
+                BufferedReader reader = request.getReader();
+                StringBuilder jsonInput = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    jsonInput.append(line);
+                }
+
+                // Fazer o parsing do JSON em uma lista de ProductQuantityUpdateDTO usando Gson
+                ProductQuantityUpdateDTO[] updates = gson.fromJson(jsonInput.toString(), ProductQuantityUpdateDTO[].class);
+
+                // Chamar o método para atualizar as quantidades em lote
+                JsonObject result = productService.updateProductQuantitiesInBatch(updates);
+
+                // Configurar a resposta HTTP
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+
+                // Escrever a resposta JSON
+                try (PrintWriter out = response.getWriter()) {
+                    out.print(result.toString());
+                }
+            } else {
+                // É a criação de um único produto
+
+                BufferedReader reader = request.getReader();
+                JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+                ProductDTO newProductDTO = gson.fromJson(jsonObject, ProductDTO.class);
+
+                Product newProduct = new Product(
+                        newProductDTO.getNome(),
+                        newProductDTO.getDescricao(),
+                        newProductDTO.getEan13(),
+                        newProductDTO.getPreco(),
+                        newProductDTO.getQuantidade(),
+                        newProductDTO.getEstoqueMin()
+                );
+
+                productService.createProduct(newProduct);
+
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+
+                JsonObject confirmation = new JsonObject();
+                confirmation.addProperty("message", messages.getString("product.create.success"));
+
+                try (PrintWriter out = response.getWriter()) {
+                    out.print(gson.toJson(confirmation));
+                }
             }
         } catch (Exception e) {
             handleException(response, e);
         }
     }
+
+
 
     protected void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {

@@ -361,18 +361,36 @@ public class ProductService {
     }
 
 
-    public void deleteProduct(UUID productHash) {
-        // Verificar se o produto com o hash especificado existe no banco de dados
-        boolean productExists = productDAO.doesProductExist(productHash);
+    public ProductReturnDTO deleteProduct(UUID productHash) {
+        // Buscar o produto pelo hash
+        Product productToDelete = productDAO.getProductByHash(productHash);
 
-        if (!productExists) {
+        if (productToDelete == null) {
             // Produto não encontrado
             throw new IllegalArgumentException(messages.getString("error.productNotFound"));
         }
 
         // Chame o método do DAO para excluir o produto usando o hash
         productDAO.deleteProduct(productHash);
+
+        // Crie um novo objeto ProductReturnDTO manualmente a partir do objeto Product
+        ProductReturnDTO productReturnDTO = new ProductReturnDTO();
+        productReturnDTO.setHash(productToDelete.getHash());
+        productReturnDTO.setNome(productToDelete.getName());
+        productReturnDTO.setDescricao(productToDelete.getDescription());
+        productReturnDTO.setEan13(productToDelete.getEan13());
+        productReturnDTO.setPreco(productToDelete.getPrice());
+        productReturnDTO.setQuantidade(productToDelete.getQuantity());
+        productReturnDTO.setEstoque_min(productToDelete.getMinStock());
+        productReturnDTO.setLativo(productToDelete.isLativo());
+        productReturnDTO.setDtCreate(productToDelete.getDtCreate());
+        productReturnDTO.setDtUpdate(productToDelete.getDtUpdate());
+
+        return productReturnDTO; // Retorna o produto que foi excluído como ProductReturnDTO
     }
+
+
+
 
 
     public boolean activateOrDeactivateProduct(UUID productHash, boolean isActive) {

@@ -336,28 +336,29 @@ public class ProductServlet extends HttpServlet {
     }
 
 
-    //Método DELETE
     @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             String hash = request.getPathInfo().substring(1); // Remove a barra inicial
             UUID productHash = UUID.fromString(hash);
 
-            boolean productExists = productDAO.doesProductExist(productHash);
+            ProductReturnDTO deletedProduct = productService.deleteProduct(productHash);
 
-            JsonObject confirmation = new JsonObject();
-            if (productExists) {
-                productService.deleteProduct(productHash);
-                confirmation.addProperty("message", messages.getString("product.delete.success"));
+            JsonObject jsonResponse = new JsonObject();
+            if (deletedProduct != null) {
+                jsonResponse.addProperty("message", messages.getString("product.delete.success"));
+                // Adicione o produto excluído ao corpo da resposta JSON
+                jsonResponse.add("Produto Excluído:", new Gson().toJsonTree(deletedProduct));
             } else {
-                confirmation.addProperty("message", messages.getString("product.notfound"));
+                jsonResponse.addProperty("message", messages.getString("product.notfound"));
             }
 
-            sendJsonResponse(response, confirmation);
+            sendJsonResponse(response, jsonResponse);
         } catch (Exception e) {
             handleException(response, e);
         }
     }
+
 
 
     //Métodos auxiliares

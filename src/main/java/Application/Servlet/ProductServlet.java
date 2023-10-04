@@ -289,16 +289,22 @@ public class ProductServlet extends HttpServlet {
             ProductUpdateDTO updateDTO = gson.fromJson(jsonObject, ProductUpdateDTO.class);
             updateDTO.setHash(hash);
 
-            boolean updated = productService.updateProduct(updateDTO);
+            Product updatedProduct = productService.updateProduct(updateDTO);
 
-            JsonObject confirmation = new JsonObject();
-            confirmation.addProperty("message", updated ? messages.getString("product.update.success") : messages.getString("product.update.error"));
+            if (updatedProduct != null) {
+                JsonObject confirmation = new JsonObject();
+                confirmation.addProperty("message", messages.getString("product.update.success"));
+                confirmation.add("product", gson.toJsonTree(updatedProduct)); // Adicione o produto atualizado à resposta JSON
 
-            sendJsonResponse(response, confirmation);
+                sendJsonResponse(response, confirmation);
+            } else {
+                sendErrorResponse(response, messages.getString("product.update.error"));
+            }
         } catch (Exception e) {
             handleException(response, e);
         }
     }
+
 
 
 
@@ -348,7 +354,7 @@ public class ProductServlet extends HttpServlet {
             if (deletedProduct != null) {
                 jsonResponse.addProperty("message", messages.getString("product.delete.success"));
                 // Adicione o produto excluído ao corpo da resposta JSON
-                jsonResponse.add("Produto Excluído:", new Gson().toJsonTree(deletedProduct));
+                jsonResponse.add("Produto Excluído", new Gson().toJsonTree(deletedProduct));
             } else {
                 jsonResponse.addProperty("message", messages.getString("product.notfound"));
             }

@@ -171,7 +171,7 @@ public class ProductService {
     }
 
 
-    public boolean updateProduct(ProductUpdateDTO updateDTO) {
+    public Product updateProduct(ProductUpdateDTO updateDTO) {
         // Verifique se os campos obrigatórios estão presentes
         List<String> missingFields = new ArrayList<>();
         if (updateDTO.getHash() == null) {
@@ -198,17 +198,6 @@ public class ProductService {
         // Obtenha o hash do DTO
         String productHash = updateDTO.getHash();
 
-        // Crie um objeto Product e configure-o com base no DTO
-        Product updatedProduct = new Product();
-        updatedProduct.setHash(UUID.fromString(productHash));
-        updatedProduct.setDescription(updateDTO.getDescricao());
-        updatedProduct.setPrice(updateDTO.getPreco());
-        updatedProduct.setQuantity(updateDTO.getQuantidade());
-        updatedProduct.setMinStock(updateDTO.getEstoqueMin());
-
-        // Define a data de atualização como a data e hora atual
-        updatedProduct.setDtUpdate(new Date());
-
         // Verificar se o produto com o hash especificado existe no banco de dados
         boolean productExists = productDAO.doesProductExist(UUID.fromString(productHash));
 
@@ -221,10 +210,26 @@ public class ProductService {
             throw new IllegalArgumentException(messages.getString("error.cannotUpdateInactiveProduct"));
         }
 
-        // Restante do código para atualizar o produto no banco de dados usando o ProductDAO
+        // Crie um objeto Product e configure-o com base no DTO
+        Product updatedProduct = new Product();
+        updatedProduct.setHash(UUID.fromString(productHash));
+        updatedProduct.setDescription(updateDTO.getDescricao());
+        updatedProduct.setPrice(updateDTO.getPreco());
+        updatedProduct.setQuantity(updateDTO.getQuantidade());
+        updatedProduct.setMinStock(updateDTO.getEstoqueMin());
 
-        // Atualize o produto no banco de dados usando o ProductDAO
-        return productDAO.updateProduct(updatedProduct);
+        // Define a data de atualização como a data e hora atual
+        updatedProduct.setDtUpdate(new Date());
+
+        // Restante do código para atualizar o produto no banco de dados usando o ProductDAO
+        boolean updateSuccess = productDAO.updateProduct(updatedProduct);
+
+        if (updateSuccess) {
+            // Após a atualização bem-sucedida, obtenha o produto atualizado da classe DAO
+            return productDAO.getProductByHash(UUID.fromString(productHash));
+        } else {
+            throw new RuntimeException(messages.getString("error.productUpdateFailed"));
+        }
     }
 
 

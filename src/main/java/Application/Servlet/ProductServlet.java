@@ -55,11 +55,9 @@ public class ProductServlet extends HttpServlet {
                         handleAllProducts(request, response);
                     }
                 } else {
-                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     sendErrorResponse(response, "Invalid URL");
                 }
             } else {
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 sendErrorResponse(response, "Resource not found");
             }
         } catch (Exception e) {
@@ -116,24 +114,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    private void sendJsonResponse(HttpServletResponse response, Object responseObject) throws IOException {
-        String jsonResponse = gson.toJson(responseObject);
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            out.print(jsonResponse);
-        }
-    }
-
-    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
-        JsonObject errorJson = new JsonObject();
-        errorJson.addProperty("error", errorMessage);
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            out.print(errorJson.toString());
-        }
-    }
 
 
     //Método POST
@@ -250,15 +230,7 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    private String readJsonInput(HttpServletRequest request) throws IOException {
-        BufferedReader reader = request.getReader();
-        StringBuilder jsonInput = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            jsonInput.append(line);
-        }
-        return jsonInput.toString();
-    }
+
 
     private List<ProductDTO> parseJsonToProductDTOList(String jsonInput) {
         Type listType = new TypeToken<List<ProductDTO>>() {}.getType();
@@ -288,133 +260,67 @@ public class ProductServlet extends HttpServlet {
         );
     }
 
-    private void configureJsonResponse(HttpServletResponse response, JsonObject jsonResponse) throws IOException {
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            out.print(jsonResponse.toString());
-        }
-    }
 
-
-    //Método PUT
+    // Método PUT
     @Override
     protected void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            // Obtenha o hash da URL
             String requestURI = request.getRequestURI();
             String[] parts = requestURI.split("/");
 
             if (parts.length != 4 || !"products".equals(parts[2])) {
-                // URL inválida, retorne um erro
-                JsonObject errorJson = new JsonObject();
-                errorJson.addProperty("error", messages.getString("product.invalid.url"));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(errorJson));
+                sendErrorResponse(response, messages.getString("product.invalid.url"));
                 return;
             }
 
             String hash = parts[3];
+            String jsonInput = readJsonInput(request);
+            JsonObject jsonObject = JsonParser.parseString(jsonInput).getAsJsonObject();
 
-            // Verifique se o DTO contém apenas os campos desejados
-            BufferedReader reader = request.getReader();
-            JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
-
-            // Crie um objeto ProductUpdateDTO com base no JSON
             ProductUpdateDTO updateDTO = gson.fromJson(jsonObject, ProductUpdateDTO.class);
-
-            // Configure a hash no DTO
             updateDTO.setHash(hash);
 
-            // Chame o serviço para atualizar o produto
             boolean updated = productService.updateProduct(updateDTO);
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-
             JsonObject confirmation = new JsonObject();
-            if (updated) {
-                confirmation.addProperty("message", messages.getString("product.update.success"));
-            } else {
-                confirmation.addProperty("message", messages.getString("product.update.error"));
-            }
+            confirmation.addProperty("message", updated ? messages.getString("product.update.success") : messages.getString("product.update.error"));
 
-            try (PrintWriter out = response.getWriter()) {
-                out.print(gson.toJson(confirmation));
-            }
+            sendJsonResponse(response, confirmation);
         } catch (Exception e) {
             handleException(response, e);
         }
     }
 
 
-    //Método PATCH
+
+    // Método PATCH
     protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-            // Obtenha o hash da URL
             String requestURI = request.getRequestURI();
             String[] parts = requestURI.split("/");
 
-            if (parts.length != 4 || !"products".equals(parts[2])) {
-                // URL inválida, retorne um erro
-                JsonObject errorJson = new JsonObject();
-                errorJson.addProperty("error", messages.getString("product.invalid.url"));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(errorJson));
+            if (parts.length != 5 || !"products".equals(parts[2]) || !"activation".equals(parts[4])) {
+                sendErrorResponse(response, messages.getString("product.invalid.url"));
                 return;
             }
 
             String hash = parts[3];
+            String jsonInput = readJsonInput(request);
+            JsonObject jsonObject = JsonParser.parseString(jsonInput).getAsJsonObject();
 
-            // Verifique se o DTO contém apenas o campo "lativo"
-            BufferedReader reader = request.getReader();
-            String line;
-            StringBuilder jsonBuilder = new StringBuilder();
-
-            while ((line = reader.readLine()) != null) {
-                jsonBuilder.append(line);
-            }
-
-            String jsonContent = jsonBuilder.toString();
-
-            if (jsonContent.isEmpty()) {
-                // Corpo da solicitação vazio, retorne um erro
-                JsonObject errorJson = new JsonObject();
-                errorJson.addProperty("error", messages.getString("product.missing.field")+ String.join(", ", "lativo"));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(errorJson));
+            if (!jsonObject.has("lativo")) {
+                sendErrorResponse(response, messages.getString("product.missing.field") + "lativo");
                 return;
             }
 
-            JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-
-
-            // Obtenha o valor do campo "lativo" do JSON
             boolean isActive = jsonObject.get("lativo").getAsBoolean();
-
-            // Ative ou desative o produto com base no valor do campo "lativo"
             UUID productHash = UUID.fromString(hash);
             boolean updated = productService.activateOrDeactivateProduct(productHash, isActive);
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-
             JsonObject confirmation = new JsonObject();
-            if (updated) {
-                confirmation.addProperty("message", isActive ? messages.getString("product.activate.success") : messages.getString("product.deactivate.success"));
-            } else {
-                confirmation.addProperty("message", messages.getString("product.update.error"));
-            }
+            confirmation.addProperty("message", updated ? (isActive ? messages.getString("product.activate.success") : messages.getString("product.deactivate.success")) : messages.getString("product.update.error"));
 
-            try (PrintWriter out = response.getWriter()) {
-                out.print(gson.toJson(confirmation));
-            }
+            sendJsonResponse(response, confirmation);
         } catch (Exception e) {
             handleException(response, e);
         }
@@ -424,18 +330,10 @@ public class ProductServlet extends HttpServlet {
     @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            // Obtenha o hash da URL
-            String hash = request.getPathInfo(); // Isso conterá "/hash" (por exemplo, "/609af184-6347-4226-a596-b27796944491")
-
-            // Remova a barra inicial
-            hash = hash.substring(1);
-
+            String hash = request.getPathInfo().substring(1); // Remove a barra inicial
             UUID productHash = UUID.fromString(hash);
 
             boolean productExists = productDAO.doesProductExist(productHash);
-
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
 
             JsonObject confirmation = new JsonObject();
             if (productExists) {
@@ -445,14 +343,49 @@ public class ProductServlet extends HttpServlet {
                 confirmation.addProperty("message", messages.getString("product.notfound"));
             }
 
-            try (PrintWriter out = response.getWriter()) {
-                out.print(gson.toJson(confirmation));
-            }
+            sendJsonResponse(response, confirmation);
         } catch (Exception e) {
             handleException(response, e);
         }
     }
 
+    //Métodos auxiliares
+    private void sendJsonResponse(HttpServletResponse response, Object responseObject) throws IOException {
+        String jsonResponse = gson.toJson(responseObject);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        try (PrintWriter out = response.getWriter()) {
+            out.print(jsonResponse);
+        }
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
+        JsonObject errorJson = new JsonObject();
+        errorJson.addProperty("error", errorMessage);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        try (PrintWriter out = response.getWriter()) {
+            out.print(errorJson.toString());
+        }
+    }
+
+    private String readJsonInput(HttpServletRequest request) throws IOException {
+        BufferedReader reader = request.getReader();
+        StringBuilder jsonInput = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            jsonInput.append(line);
+        }
+        return jsonInput.toString();
+    }
+
+    private void configureJsonResponse(HttpServletResponse response, JsonObject jsonResponse) throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        try (PrintWriter out = response.getWriter()) {
+            out.print(jsonResponse.toString());
+        }
+    }
 
     private void handleException(HttpServletResponse response, Exception e) throws IOException {
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

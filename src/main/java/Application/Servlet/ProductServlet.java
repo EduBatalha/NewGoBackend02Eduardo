@@ -151,12 +151,20 @@ public class ProductServlet extends HttpServlet {
             // Chama o método createProductsInBatch para processar o lote de produtos
             JsonObject result = productService.createProductsInBatch(batchDTO);
 
-            // Configura a resposta HTTP
-            configureJsonResponse(response, result);
+            // Verifica se há produtos com erros de validação
+            if (result.has("products_with_errors")) {
+                // Pelo menos um produto teve erro de validação, configure uma resposta de erro com status HTTP 400 (Bad Request)
+                configureJsonResponse(response, result);
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            } else {
+                // Todos os produtos foram criados com sucesso, configure uma resposta de sucesso
+                configureJsonResponse(response, result);
+            }
         } catch (Exception e) {
             handleException(response, e);
         }
     }
+
 
     private void processBatchPriceUpdate(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
@@ -219,17 +227,18 @@ public class ProductServlet extends HttpServlet {
             Product newProduct = createProductFromDTO(newProductDTO);
 
             // Chamar o método para criar o produto
-            productService.createProduct(newProduct);
+            Product  createdProduct = productService.createProduct(newProduct); // Alteração aqui
 
             // Configurar a resposta HTTP
-            JsonObject confirmation = new JsonObject();
-            confirmation.addProperty("message", messages.getString("product.create.success"));
-            configureJsonResponse(response, confirmation);
+            JsonObject responseJson = new JsonObject();
+            responseJson.addProperty("message", messages.getString("product.create.success"));
+            responseJson.add("product", gson.toJsonTree(createdProduct)); // Incluir o produto criado na resposta
+
+            configureJsonResponse(response, responseJson);
         } catch (Exception e) {
             handleException(response, e);
         }
     }
-
 
 
     private List<ProductDTO> parseJsonToProductDTOList(String jsonInput) {
@@ -326,6 +335,7 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
+
     //Método DELETE
     @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -348,6 +358,7 @@ public class ProductServlet extends HttpServlet {
             handleException(response, e);
         }
     }
+
 
     //Métodos auxiliares
     private void sendJsonResponse(HttpServletResponse response, Object responseObject) throws IOException {

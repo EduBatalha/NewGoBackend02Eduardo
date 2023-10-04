@@ -62,7 +62,7 @@ public class ProductService {
     }
 
 
-    public void createProduct(Product product) {
+    public Product createProduct(Product product) {
         List<String> errors = new ArrayList<>();
 
         // Verificar duplicação de nome e EAN13 (RN002 e RN003)
@@ -90,16 +90,20 @@ public class ProductService {
         }
 
         // Se não houver erros, continue com a criação do produto
+        product.setHash(UUID.randomUUID());
         product.setDtCreate(new Date());
         product.setLativo(false);
         productDAO.createProduct(product);
+        return product;
     }
+
 
 
     public JsonObject createProductsInBatch(ProductBatchDTO batchDTO) {
         // Inicialize listas para rastrear produtos com sucesso e erros
         List<JsonObject> errorProducts = new ArrayList<>();
         List<JsonObject> successProducts = new ArrayList<>();
+        List<Product> createdProducts = new ArrayList<>(); // Nova lista para rastrear produtos criados
 
         // Acesse a lista de produtos do DTO
         List<ProductDTO> products = batchDTO.getProductDTOs();
@@ -111,7 +115,10 @@ public class ProductService {
                 Product product = convertProductDTO(productDTO);
 
                 // Tente cadastrar o produto
-                createProduct(product);
+                Product createdProduct = createProduct(product); // Retorna o produto criado
+
+                // Adicione o produto criado à lista
+                createdProducts.add(createdProduct);
 
                 // Se o produto for cadastrado com sucesso, adicione-o à lista de sucesso
                 JsonObject successProduct = new JsonObject();
@@ -141,8 +148,14 @@ public class ProductService {
             result.add("error", gson.toJsonTree(errorProducts));
         }
 
+        // Adicione a lista de produtos criados com sucesso ao resultado
+        if (!createdProducts.isEmpty()) {
+            result.add("created", gson.toJsonTree(createdProducts));
+        }
+
         return result;
     }
+
 
 
     // Método auxiliar para converter ProductDTO em Product

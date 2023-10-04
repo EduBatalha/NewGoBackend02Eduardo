@@ -5,7 +5,6 @@ import java.util.Date;
 
 
 public class Product {
-    private long id;
     private UUID hash;
     private String nome;
     private String descricao;
@@ -18,6 +17,7 @@ public class Product {
     private Date dtUpdate; // Data de atualização
 
     public Product(String nome, String descricao, String ean13, double preco, double quantidade, double estoqueMin) {
+        this.hash = UUID.randomUUID();
         this.nome = nome;
         this.descricao = descricao;
         this.ean13 = ean13;
@@ -50,10 +50,6 @@ public class Product {
         this.dtUpdate = dtUpdate;
     }
 
-    // Setter para o campo 'id'
-    public void setId(long id) {
-        this.id = id;
-    }
 
     // Getter para o campo 'hash'
     public UUID getHash() {

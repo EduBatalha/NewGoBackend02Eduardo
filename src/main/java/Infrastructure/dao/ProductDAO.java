@@ -105,7 +105,7 @@ public class ProductDAO {
         return products;
     }
 
-    private ProductReturnDTO mapProductReturnDTOFromResultSet(ResultSet resultSet) throws SQLException {
+    public ProductReturnDTO mapProductReturnDTOFromResultSet(ResultSet resultSet) throws SQLException {
         ProductReturnDTO productReturnDTO = new ProductReturnDTO();
         productReturnDTO.setHash(UUID.fromString(resultSet.getString("hash")));
         productReturnDTO.setNome(resultSet.getString("nome"));
@@ -131,7 +131,6 @@ public class ProductDAO {
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     Product product = new Product();
-                    product.setId(resultSet.getInt("id"));
                     product.setHash(UUID.fromString(resultSet.getString("hash")));
                     product.setName(resultSet.getString("nome"));
                     product.setDescription(resultSet.getString("descricao"));
@@ -229,22 +228,23 @@ public class ProductDAO {
     public void createProduct(Product product) {
         try (Connection connection = PostgreSQLConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "INSERT INTO produto (nome, descricao, ean13, preco, quantidade, estoque_min, lativo, dtcreate) " +
-                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+                     "INSERT INTO produto (hash, nome, descricao, ean13, preco, quantidade, estoque_min, lativo, dtcreate) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
 
             // Define a data de criação como a data e hora atual
             Date currentDate = new Date(System.currentTimeMillis());
             product.setDtCreate(currentDate);
 
             // Configure os valores dos parâmetros na consulta SQL
-            statement.setString(1, product.getName());
-            statement.setString(2, product.getDescription());
-            statement.setString(3, product.getEan13());
-            statement.setDouble(4, product.getPrice());
-            statement.setDouble(5, product.getQuantity());
-            statement.setDouble(6, product.getMinStock());
-            statement.setBoolean(7, product.isLativo());
-            statement.setTimestamp(8, new java.sql.Timestamp(product.getDtCreate().getTime())); // Converte Date para Timestamp
+            statement.setObject(1, product.getHash());
+            statement.setString(2, product.getName());
+            statement.setString(3, product.getDescription());
+            statement.setString(4, product.getEan13());
+            statement.setDouble(5, product.getPrice());
+            statement.setDouble(6, product.getQuantity());
+            statement.setDouble(7, product.getMinStock());
+            statement.setBoolean(8, product.isLativo());
+            statement.setTimestamp(9, new java.sql.Timestamp(product.getDtCreate().getTime())); // Converte Date para Timestamp
 
             statement.executeUpdate();
         } catch (SQLException e) {

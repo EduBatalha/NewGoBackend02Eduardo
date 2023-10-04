@@ -66,7 +66,7 @@ public class ProductServlet extends HttpServlet {
     }
 
     private void handleActiveProductByHash(String hash, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        Product product = productService.getActiveProductByHash(UUID.fromString(hash));
+        ProductReturnDTO product = productService.getActiveProductByHash(UUID.fromString(hash));
         if (product != null) {
             sendJsonResponse(response, product);
         } else {
@@ -84,7 +84,7 @@ public class ProductServlet extends HttpServlet {
     }
 
     private void handleProductsBelowMinStock(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        List<Product> productsBelowMinStock = productService.getProductsBelowMinStock();
+        List<ProductReturnDTO> productsBelowMinStock = productService.getProductsBelowMinStock();
         if (productsBelowMinStock != null) {
             sendJsonResponse(response, productsBelowMinStock);
         } else {
@@ -97,7 +97,7 @@ public class ProductServlet extends HttpServlet {
         boolean onlyActive = "true".equalsIgnoreCase(activeParam);
         boolean onlyInactive = "false".equalsIgnoreCase(activeParam);
 
-        List<Product> products = null;
+        List<ProductReturnDTO> products = null;
 
         if (onlyActive) {
             products = productService.getActiveProducts();

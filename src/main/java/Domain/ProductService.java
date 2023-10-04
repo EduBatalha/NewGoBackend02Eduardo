@@ -12,29 +12,32 @@ import java.util.*;
 public class ProductService {
     private ProductDAO productDAO = new ProductDAO();
     private Gson gson = new Gson();
-
     private static final ResourceBundle messages = ResourceBundle.getBundle("messages");
 
-    public List<Product> getAllProducts() {
+
+    public List<ProductReturnDTO> getAllProducts() {
         // Lógica para obter todos os produtos do banco de dados
         return productDAO.getAllProducts();
     }
 
-    public List<Product> getActiveProducts() {
+
+    public List<ProductReturnDTO> getActiveProducts() {
         // Lógica para obter todos os produtos ativos do banco de dados
         return productDAO.getActiveProducts();
     }
 
-    public List<Product> getInactiveProducts() {
+
+    public List<ProductReturnDTO> getInactiveProducts() {
         return productDAO.getInactiveProducts();
     }
 
-    public List<Product> getProductsBelowMinStock() {
+
+    public List<ProductReturnDTO> getProductsBelowMinStock() {
         return productDAO.getProductsBelowMinStock();
     }
 
 
-    public Product getActiveProductByHash(UUID productHash) {
+    public ProductReturnDTO getActiveProductByHash(UUID productHash) {
         if (productDAO.doesProductExist(productHash)) {
             // Verifique se o produto está ativo
             if (productDAO.isProductActive(productHash)) {
@@ -47,6 +50,7 @@ public class ProductService {
             throw new IllegalArgumentException(messages.getString("error.productNotFound"));
         }
     }
+
 
     public Product getProductByHash(UUID productHash) {
         if (productDAO.doesProductExist(productHash)) {
@@ -90,6 +94,7 @@ public class ProductService {
         product.setLativo(false);
         productDAO.createProduct(product);
     }
+
 
     public JsonObject createProductsInBatch(ProductBatchDTO batchDTO) {
         // Inicialize listas para rastrear produtos com sucesso e erros
@@ -140,7 +145,6 @@ public class ProductService {
     }
 
 
-
     // Método auxiliar para converter ProductDTO em Product
     private Product convertProductDTO(ProductDTO productDTO) {
         Product product = new Product();
@@ -152,6 +156,7 @@ public class ProductService {
         product.setMinStock(productDTO.getEstoqueMin());
         return product;
     }
+
 
     public boolean updateProduct(ProductUpdateDTO updateDTO) {
         // Verifique se os campos obrigatórios estão presentes
@@ -210,8 +215,6 @@ public class ProductService {
     }
 
 
-
-
     public Map<String, Object> updateProductPricesInBatch(List<ProductPriceUpdateDTO> updates) {
         List<String> erroProdutos = new ArrayList<>();
         List<String> produtosAtualizados = new ArrayList<>();
@@ -263,6 +266,7 @@ public class ProductService {
         return novoPreco;
     }
 
+
     // Método para analisar e converter o valor (porcentagem ou valor fixo)
     private double parseValor(String valor) {
         if (valor.endsWith("%")) {
@@ -275,10 +279,12 @@ public class ProductService {
         }
     }
 
+
     // Método para atualizar o campo "preco" de um produto
     private void updateProductPrice(Product product, double novoPreco) {
         product.setPrice(novoPreco);
     }
+
 
     public JsonObject updateProductQuantitiesInBatch(ProductQuantityUpdateDTO[] updates) {
         List<JsonObject> errorProducts = new ArrayList<>();
@@ -341,6 +347,7 @@ public class ProductService {
         return result;
     }
 
+
     public void deleteProduct(UUID productHash) {
         // Verificar se o produto com o hash especificado existe no banco de dados
         boolean productExists = productDAO.doesProductExist(productHash);
@@ -353,6 +360,7 @@ public class ProductService {
         // Chame o método do DAO para excluir o produto usando o hash
         productDAO.deleteProduct(productHash);
     }
+
 
     public boolean activateOrDeactivateProduct(UUID productHash, boolean isActive) {
         // Verificar se o produto com o hash especificado existe no banco de dados

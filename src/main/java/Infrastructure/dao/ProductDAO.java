@@ -1,17 +1,17 @@
 package Infrastructure.dao;
 
+import Application.dto.ProductReturnDTO;
 import Infrastructure.PostgreSQLConnection;
 import Infrastructure.Entity.Product;
 
 import java.sql.*;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class ProductDAO {
-    public List<Product> getAllProducts() {
-        List<Product> products = new ArrayList<>();
+    public List<ProductReturnDTO> getAllProducts() {
+        List<ProductReturnDTO> products = new ArrayList<>();
         String sql = "SELECT * FROM produto";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
@@ -19,8 +19,8 @@ public class ProductDAO {
              ResultSet resultSet = statement.executeQuery()) {
 
             while (resultSet.next()) {
-                Product product = mapProductFromResultSet(resultSet);
-                products.add(product);
+                ProductReturnDTO productReturnDTO = mapProductReturnDTOFromResultSet(resultSet);
+                products.add(productReturnDTO);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -29,8 +29,8 @@ public class ProductDAO {
         return products;
     }
 
-    public List<Product> getActiveProducts() {
-        List<Product> activeProducts = new ArrayList<>();
+    public List<ProductReturnDTO> getActiveProducts() {
+        List<ProductReturnDTO> activeProducts = new ArrayList<>();
         String sql = "SELECT * FROM produto WHERE lativo = true";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
@@ -38,8 +38,8 @@ public class ProductDAO {
              ResultSet resultSet = statement.executeQuery()) {
 
             while (resultSet.next()) {
-                Product product = mapProductFromResultSet(resultSet);
-                activeProducts.add(product);
+                ProductReturnDTO productReturnDTO = mapProductReturnDTOFromResultSet(resultSet);
+                activeProducts.add(productReturnDTO);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -48,8 +48,8 @@ public class ProductDAO {
         return activeProducts;
     }
 
-    public List<Product> getInactiveProducts() {
-        List<Product> inactiveProducts = new ArrayList<>();
+    public List<ProductReturnDTO> getInactiveProducts() {
+        List<ProductReturnDTO> inactiveProducts = new ArrayList<>();
         String sql = "SELECT * FROM produto WHERE lativo = false";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
@@ -57,8 +57,8 @@ public class ProductDAO {
              ResultSet resultSet = statement.executeQuery()) {
 
             while (resultSet.next()) {
-                Product product = mapProductFromResultSet(resultSet);
-                inactiveProducts.add(product);
+                ProductReturnDTO productReturnDTO = mapProductReturnDTOFromResultSet(resultSet);
+                inactiveProducts.add(productReturnDTO);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -67,26 +67,7 @@ public class ProductDAO {
         return inactiveProducts;
     }
 
-    public Product getProductByHash(UUID productHash) {
-        String sql = "SELECT * FROM produto WHERE hash = ?";
-
-        try (Connection connection = PostgreSQLConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setObject(1, productHash);
-
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return mapProductFromResultSet(resultSet);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-        return null;
-    }
-
-    public Product getActiveProductByHash(UUID productHash) {
+    public ProductReturnDTO getActiveProductByHash(UUID productHash) {
         String sql = "SELECT * FROM produto WHERE hash = ? AND lativo = true";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
@@ -95,7 +76,7 @@ public class ProductDAO {
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    return mapProductFromResultSet(resultSet);
+                    return mapProductReturnDTOFromResultSet(resultSet);
                 }
             }
         } catch (SQLException e) {
@@ -105,8 +86,8 @@ public class ProductDAO {
         return null;
     }
 
-    public List<Product> getProductsBelowMinStock() {
-        List<Product> products = new ArrayList<>();
+    public List<ProductReturnDTO> getProductsBelowMinStock() {
+        List<ProductReturnDTO> products = new ArrayList<>();
         String sql = "SELECT * FROM produto WHERE quantidade < estoque_min AND lativo = true";
 
         try (Connection connection = PostgreSQLConnection.getConnection();
@@ -114,8 +95,8 @@ public class ProductDAO {
              ResultSet resultSet = statement.executeQuery()) {
 
             while (resultSet.next()) {
-                Product product = mapProductFromResultSet(resultSet);
-                products.add(product);
+                ProductReturnDTO productReturnDTO = mapProductReturnDTOFromResultSet(resultSet);
+                products.add(productReturnDTO);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -124,24 +105,53 @@ public class ProductDAO {
         return products;
     }
 
-    private Product mapProductFromResultSet(ResultSet resultSet) throws SQLException {
-        Product product = new Product();
-        product.setId(resultSet.getInt("id"));
-        product.setHash(UUID.fromString(resultSet.getString("hash")));
-        product.setName(resultSet.getString("nome"));
-        product.setDescription(resultSet.getString("descricao"));
-        product.setEan13(resultSet.getString("ean13"));
-        product.setPrice(resultSet.getDouble("preco"));
-        product.setQuantity(resultSet.getDouble("quantidade"));
-        product.setMinStock(resultSet.getDouble("estoque_min"));
-        product.setDtCreate(resultSet.getDate("dtcreate"));
-        product.setDtUpdate(resultSet.getDate("dtupdate"));
-        product.setLativo(resultSet.getBoolean("lativo"));
-        return product;
+    private ProductReturnDTO mapProductReturnDTOFromResultSet(ResultSet resultSet) throws SQLException {
+        ProductReturnDTO productReturnDTO = new ProductReturnDTO();
+        productReturnDTO.setHash(UUID.fromString(resultSet.getString("hash")));
+        productReturnDTO.setNome(resultSet.getString("nome"));
+        productReturnDTO.setDescricao(resultSet.getString("descricao"));
+        productReturnDTO.setEan13(resultSet.getString("ean13"));
+        productReturnDTO.setPreco(resultSet.getDouble("preco"));
+        productReturnDTO.setQuantidade(resultSet.getDouble("quantidade"));
+        productReturnDTO.setEstoque_min(resultSet.getDouble("estoque_min"));
+        productReturnDTO.setLativo(resultSet.getBoolean("lativo"));
+        productReturnDTO.setDtCreate(resultSet.getDate("dtcreate"));
+        productReturnDTO.setDtUpdate(resultSet.getDate("dtupdate"));
+        return productReturnDTO;
     }
 
 
 
+    // Consulta para retornar um produto pelo seu hash
+    public Product getProductByHash(UUID productHash) {
+        try (Connection connection = PostgreSQLConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM produto WHERE hash = ?")) {
+            statement.setObject(1, productHash);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    Product product = new Product();
+                    product.setId(resultSet.getInt("id"));
+                    product.setHash(UUID.fromString(resultSet.getString("hash")));
+                    product.setName(resultSet.getString("nome"));
+                    product.setDescription(resultSet.getString("descricao"));
+                    product.setEan13(resultSet.getString("ean13"));
+                    product.setPrice(resultSet.getDouble("preco"));
+                    product.setQuantity(resultSet.getDouble("quantidade"));
+                    product.setMinStock(resultSet.getDouble("estoque_min"));
+                    product.setDtCreate(resultSet.getDate("dtcreate"));
+                    product.setDtUpdate(resultSet.getDate("dtupdate"));
+                    product.setLativo(resultSet.getBoolean("lativo"));
+                    return product;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Trate a exceção ou propague-a conforme necessário
+            throw new RuntimeException(e);
+        }
+        return null; // Retorna null se o produto não for encontrado ou não estiver ativo
+    }
 
     public boolean doesProductExist(UUID productHash) {
         String query = "SELECT COUNT(*) FROM produto WHERE hash = ?";

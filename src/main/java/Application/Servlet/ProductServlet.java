@@ -36,6 +36,7 @@ public class ProductServlet extends HttpServlet {
     }
 
 
+
     //Método GET
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -165,7 +166,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-
     private void processBatchPriceUpdate(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             // Ler o JSON de entrada da solicitação HTTP
@@ -175,20 +175,11 @@ public class ProductServlet extends HttpServlet {
             ProductPriceUpdateDTO[] updates = parseJsonToProductPriceUpdateArray(jsonInput);
 
             // Chamar o método para atualizar os preços em lote
-            Map<String, Object> batchResult = productService.updateProductPricesInBatch(Arrays.asList(updates));
-            List<String> erroProdutos = (List<String>) batchResult.get("erroProdutos");
-            List<String> produtosAtualizados = (List<String>) batchResult.get("produtosAtualizados");
+            List<JsonObject> produtosAtualizados = productService.updateProductPricesInBatch(Arrays.asList(updates));
 
             // Construir um objeto JSON para a resposta
             JsonObject jsonResponse = new JsonObject();
-
-            if (!erroProdutos.isEmpty()) {
-                jsonResponse.addProperty("error", String.join(" - ", erroProdutos));
-            }
-
-            if (!produtosAtualizados.isEmpty()) {
-                jsonResponse.addProperty("message", String.join(" - ", produtosAtualizados));
-            }
+            jsonResponse.add("produtosAtualizados", gson.toJsonTree(produtosAtualizados));
 
             // Configurar a resposta HTTP
             configureJsonResponse(response, jsonResponse);
@@ -196,6 +187,8 @@ public class ProductServlet extends HttpServlet {
             handleException(response, e);
         }
     }
+
+
 
     private void processBatchQuantityUpdate(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
@@ -240,7 +233,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-
     private List<ProductDTO> parseJsonToProductDTOList(String jsonInput) {
         Type listType = new TypeToken<List<ProductDTO>>() {}.getType();
         return gson.fromJson(jsonInput, listType);
@@ -268,6 +260,7 @@ public class ProductServlet extends HttpServlet {
                 productDTO.getEstoqueMin()
         );
     }
+
 
 
     // Método PUT
@@ -307,7 +300,6 @@ public class ProductServlet extends HttpServlet {
 
 
 
-
     // Método PATCH
     protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
@@ -342,6 +334,8 @@ public class ProductServlet extends HttpServlet {
     }
 
 
+
+    // Método DELETE
     @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {

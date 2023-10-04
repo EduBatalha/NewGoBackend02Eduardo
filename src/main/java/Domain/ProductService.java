@@ -98,12 +98,10 @@ public class ProductService {
     }
 
 
-
     public JsonObject createProductsInBatch(ProductBatchDTO batchDTO) {
         // Inicialize listas para rastrear produtos com sucesso e erros
         List<JsonObject> errorProducts = new ArrayList<>();
-        List<JsonObject> successProducts = new ArrayList<>();
-        List<Product> createdProducts = new ArrayList<>(); // Nova lista para rastrear produtos criados
+        List<Product> successProducts = new ArrayList<>(); // Alteração aqui
 
         // Acesse a lista de produtos do DTO
         List<ProductDTO> products = batchDTO.getProductDTOs();
@@ -117,14 +115,8 @@ public class ProductService {
                 // Tente cadastrar o produto
                 Product createdProduct = createProduct(product); // Retorna o produto criado
 
-                // Adicione o produto criado à lista
-                createdProducts.add(createdProduct);
-
-                // Se o produto for cadastrado com sucesso, adicione-o à lista de sucesso
-                JsonObject successProduct = new JsonObject();
-                successProduct.addProperty("nome", productDTO.getNome());
-                successProduct.addProperty("ean13", productDTO.getEan13());
-                successProducts.add(successProduct);
+                // Adicione o produto criado à lista de sucesso
+                successProducts.add(createdProduct);
             } catch (IllegalArgumentException e) {
                 // Se ocorrer uma exceção, capture o erro e crie um objeto JSON para representar o erro
                 JsonObject errorProduct = new JsonObject();
@@ -148,14 +140,8 @@ public class ProductService {
             result.add("error", gson.toJsonTree(errorProducts));
         }
 
-        // Adicione a lista de produtos criados com sucesso ao resultado
-        if (!createdProducts.isEmpty()) {
-            result.add("created", gson.toJsonTree(createdProducts));
-        }
-
         return result;
     }
-
 
 
     // Método auxiliar para converter ProductDTO em Product
@@ -233,56 +219,81 @@ public class ProductService {
     }
 
 
-    public Map<String, Object> updateProductPricesInBatch(List<ProductPriceUpdateDTO> updates) {
-        List<String> erroProdutos = new ArrayList<>();
-        List<String> produtosAtualizados = new ArrayList<>();
+    public List<JsonObject> updateProductPricesInBatch(List<ProductPriceUpdateDTO> updates) {
+        List<JsonObject> produtosAtualizados = new ArrayList<>();
 
         for (ProductPriceUpdateDTO update : updates) {
             Product product = productDAO.getProductByHash(update.getHash());
 
             // Verifique se o produto está ativo antes de atualizar
             if (!product.isLativo()) {
-                erroProdutos.add( messages.getString("error.cannotUpdateInactiveProduct") + ": " + update.getHash());
+                JsonObject erroProduto = new JsonObject();
+                erroProduto.addProperty("hash", update.getHash().toString());
+                erroProduto.addProperty("error", messages.getString("error.cannotUpdateInactiveProduct") + ": " + update.getHash());
+                produtosAtualizados.add(erroProduto);
             } else {
-                double novoPreco = calcularNovoPreco(product.getPrice(), update);
+                // Obtenha o preço atual do produto
+                double precoAtual = product.getPrice();
+
+                // Calcule o novo preço com base no preço atual e na operação
+                double novoPreco = calcularNovoPreco(precoAtual, update);
 
                 // Atualize o campo "preco" do produto diretamente
-                updateProductPrice(product, novoPreco);
+                product.setPrice(novoPreco);
+
+                // Tente atualizar o produto no banco de dados
                 boolean atualizacaoBemSucedida = productDAO.updateProduct(product);
 
                 if (atualizacaoBemSucedida) {
-                    produtosAtualizados.add(messages.getString("product.update.success") + ": " + update.getHash().toString());
+                    JsonObject produtoAtualizado = new JsonObject();
+                    produtoAtualizado.addProperty("hash", product.getHash().toString());
+                    produtoAtualizado.addProperty("nome", product.getName());
+                    produtoAtualizado.addProperty("descricao", product.getDescription());
+                    produtoAtualizado.addProperty("ean13", product.getEan13());
+                    produtoAtualizado.addProperty("preco", precoAtual + " -> " + novoPreco);
+                    produtoAtualizado.addProperty("quantidade", product.getQuantity());
+                    produtoAtualizado.addProperty("estoque_min", product.getMinStock());
+                    produtoAtualizado.addProperty("lativo", product.isLativo());
+                    produtoAtualizado.addProperty("dtCreate", product.getDtCreate().toString());
+                    produtoAtualizado.addProperty("dtUpdate", product.getDtUpdate().toString());
+
+                    produtosAtualizados.add(produtoAtualizado);
                 } else {
-                    erroProdutos.add(messages.getString("product.update.error") + update.getHash());
+                    JsonObject erroProduto = new JsonObject();
+                    erroProduto.addProperty("hash", update.getHash().toString());
+                    erroProduto.addProperty("error", messages.getString("product.update.error") + update.getHash());
+                    produtosAtualizados.add(erroProduto);
                 }
             }
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("erroProdutos", erroProdutos);
-        result.put("produtosAtualizados", produtosAtualizados);
-
-        return result;
+        return produtosAtualizados;
     }
 
 
-    // Método para calcular o novo preço com base na operação
+
+
+
     private double calcularNovoPreco(double precoAtual, ProductPriceUpdateDTO update) {
         double valorParaAdicionar = parseValor(update.getValor());
 
         if (update.getOperacao().equalsIgnoreCase("subtrair")) {
-            valorParaAdicionar = -valorParaAdicionar;
-        }
-
-        double novoPreco;
-        if (update.getOperacao().equalsIgnoreCase("definir")) {
-            novoPreco = valorParaAdicionar; // Definir para um valor específico
+            // Desconto percentual (ex: -20%)
+            return precoAtual * (1.0 - valorParaAdicionar);
+        } else if (update.getOperacao().equalsIgnoreCase("somar")) {
+            // Aumento percentual (ex: +20%)
+            return precoAtual * (1.0 + valorParaAdicionar);
+        } else if (update.getOperacao().equalsIgnoreCase("definir")) {
+            // Definir para um valor específico
+            return valorParaAdicionar;
         } else {
-            novoPreco = precoAtual + valorParaAdicionar;
+            throw new IllegalArgumentException("Operação inválida: " + update.getOperacao());
         }
-
-        return novoPreco;
     }
+
+
+
+
 
 
     // Método para analisar e converter o valor (porcentagem ou valor fixo)

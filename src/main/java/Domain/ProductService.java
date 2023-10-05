@@ -419,10 +419,7 @@ public class ProductService {
     }
 
 
-
-
-
-    public boolean activateOrDeactivateProduct(UUID productHash, boolean isActive) {
+    public JsonObject activateOrDeactivateProduct(UUID productHash, boolean isActive) {
         // Verificar se o produto com o hash especificado existe no banco de dados
         boolean productExists = productDAO.doesProductExist(productHash);
 
@@ -438,6 +435,25 @@ public class ProductService {
             productDAO.deactivateProduct(productHash);
         }
 
-        return true;
+        // Recuperar o produto atualizado após a ativação/desativação
+        Product updatedProduct = productDAO.getProductByHash(productHash);
+
+
+
+        // Criar um objeto JSON representando o produto atualizado
+        JsonObject jsonProduct = new JsonObject();
+        jsonProduct.addProperty("STATUS", isActive ? messages.getString("product.activate.success") : messages.getString("product.deactivate.success"));
+        jsonProduct.addProperty("lativo", updatedProduct.isLativo());
+        jsonProduct.addProperty("hash", updatedProduct.getHash().toString());
+        jsonProduct.addProperty("nome", updatedProduct.getName());
+        jsonProduct.addProperty("descricao", updatedProduct.getDescription());
+        jsonProduct.addProperty("ean13", updatedProduct.getEan13());
+        jsonProduct.addProperty("preco", updatedProduct.getPrice());
+        jsonProduct.addProperty("estoque_min", updatedProduct.getMinStock());
+        jsonProduct.addProperty("dtCreate", updatedProduct.getDtCreate().toString());
+        jsonProduct.addProperty("dtUpdate", updatedProduct.getDtUpdate().toString());
+
+        return jsonProduct;
     }
+
 }

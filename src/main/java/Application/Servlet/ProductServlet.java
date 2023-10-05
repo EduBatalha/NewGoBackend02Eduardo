@@ -343,16 +343,14 @@ public class ProductServlet extends HttpServlet {
 
             boolean isActive = jsonObject.get("lativo").getAsBoolean();
             UUID productHash = UUID.fromString(hash);
-            boolean updated = productService.activateOrDeactivateProduct(productHash, isActive);
+            JsonObject result = productService.activateOrDeactivateProduct(productHash, isActive);
 
-            JsonObject confirmation = new JsonObject();
-            confirmation.addProperty("message", updated ? (isActive ? messages.getString("product.activate.success") : messages.getString("product.deactivate.success")) : messages.getString("product.update.error"));
-
-            sendJsonResponse(response, confirmation);
+            sendJsonResponse(response, result);
         } catch (Exception e) {
             handleException(response, e);
         }
     }
+
 
 
 

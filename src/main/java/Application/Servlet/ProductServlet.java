@@ -1,12 +1,12 @@
 package Application.Servlet;
 
-import Application.dto.ProductDTO;
-import Application.dto.ProductUpdateDTO;
+import Application.dto.*;
 import Infrastructure.Entity.Product;
 import Infrastructure.dao.ProductDAO;
 import Domain.ProductService;
 
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Type;
 import java.util.*;
 
 @WebServlet("/products/*")
@@ -34,439 +35,388 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
+
+
+    //Método GET
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             String requestURI = request.getRequestURI();
             String[] parts = requestURI.split("/");
 
-            if (parts.length == 5 && "products".equals(parts[2]) && "active".equals(parts[4])) {
-                // Consulta produtos ativos por hash
-                String hash = parts[3];
-                Product product = productService.getActiveProductByHash(UUID.fromString(hash));
-
-                if (product != null) {
-                    String jsonProduct = gson.toJson(product);
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(jsonProduct);
-                    }
-                } else {
-                    // Produto não encontrado ou não está ativo
-                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    JsonObject errorJson = new JsonObject();
-                    errorJson.addProperty("error", messages.getString("error.inactiveOrNotFound"));
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(errorJson.toString());
-                    }
-                }
-            } else if (parts.length == 4 && "products".equals(parts[2])) {
-                // Consulta produtos por hash
-                String hash = parts[3];
-                Product product = productService.getProductByHash(UUID.fromString(hash));
-
-                if (product != null) {
-                    String jsonProduct = gson.toJson(product);
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(jsonProduct);
-                    }
-                } else {
-                    // Produto não encontrado
-                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    JsonObject errorJson = new JsonObject();
-                    errorJson.addProperty("error", messages.getString("error.notFound"));
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(errorJson.toString());
-                    }
-                }
-            } else if (parts.length == 3 && "products".equals(parts[2])) {
-                // Consulta produtos com quantidade abaixo do estoque mínimo
-                String belowMinStockParam = request.getParameter("abaixo-estoque-min");
-
-                if (belowMinStockParam != null && "true".equalsIgnoreCase(belowMinStockParam)) {
-                    List<Product> productsBelowMinStock = productService.getProductsBelowMinStock();
-
-                    if (productsBelowMinStock != null) {
-                        String jsonProducts = gson.toJson(productsBelowMinStock);
-                        response.setContentType("application/json");
-                        response.setCharacterEncoding("UTF-8");
-
-                        try (PrintWriter out = response.getWriter()) {
-                            out.print(jsonProducts);
-                        }
+            if (parts.length >= 3 && "products".equals(parts[2])) {
+                if (parts.length == 5 && "active".equals(parts[4])) {
+                    handleActiveProductByHash(parts[3], request, response);
+                } else if (parts.length == 4) {
+                    handleProductByHash(parts[3], request, response);
+                } else if (parts.length == 3) {
+                    if ("true".equalsIgnoreCase(request.getParameter("abaixo-estoque-min"))) {
+                        handleProductsBelowMinStock(request, response);
                     } else {
-                        // Não foi possível recuperar os produtos
-                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                        JsonObject errorJson = new JsonObject();
-                        errorJson.addProperty("error", messages.getString("error.cannotRetrieveData"));
-                        response.setContentType("application/json");
-                        response.setCharacterEncoding("UTF-8");
-                        try (PrintWriter out = response.getWriter()) {
-                            out.print(errorJson.toString());
-                        }
+                        handleAllProducts(request, response);
                     }
                 } else {
-                    // Consulta todos os produtos
-                    String activeParam = request.getParameter("active");
-                    boolean onlyActive = activeParam != null && activeParam.equalsIgnoreCase("true");
-                    boolean onlyInactive = activeParam != null && activeParam.equalsIgnoreCase("false");
-
-                    List<Product> products = null;
-
-                    if (onlyActive) {
-                        // Consulta apenas produtos ativos
-                        products = productService.getActiveProducts();
-                    } else if (onlyInactive) {
-                        // Consulta apenas produtos inativos
-                        products = productService.getInactiveProducts();
-                    } else {
-                        // Consulta todos os produtos
-                        products = productService.getAllProducts();
-                    }
-
-                    if (products != null) {
-                        String jsonProducts = gson.toJson(products);
-                        response.setContentType("application/json");
-                        response.setCharacterEncoding("UTF-8");
-
-                        try (PrintWriter out = response.getWriter()) {
-                            out.print(jsonProducts);
-                        }
-                    } else {
-                        // Não foi possível recuperar os produtos
-                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                        JsonObject errorJson = new JsonObject();
-                        errorJson.addProperty("error", messages.getString("error.cannotRetrieveData"));
-                        response.setContentType("application/json");
-                        response.setCharacterEncoding("UTF-8");
-                        try (PrintWriter out = response.getWriter()) {
-                            out.print(errorJson.toString());
-                        }
-                    }
-                }
-            } else if (parts.length == 4 && "products".equals(parts[2]) && "active".equals(parts[3])) {
-                // Consulta produtos ativos
-                List<Product> activeProducts = productService.getActiveProducts();
-
-                if (activeProducts != null) {
-                    String jsonProducts = gson.toJson(activeProducts);
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(jsonProducts);
-                    }
-                } else {
-                    // Não foi possível recuperar os produtos ativos
-                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    JsonObject errorJson = new JsonObject();
-                    errorJson.addProperty("error", messages.getString("error.cannotRetrieveData"));
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(errorJson.toString());
-                    }
+                    sendErrorResponse(response, "Invalid URL");
                 }
             } else {
-                // Consulta outros tipos de produtos
-                String activeParam = request.getParameter("active");
-                boolean onlyActive = activeParam != null && activeParam.equalsIgnoreCase("true");
-                boolean onlyInactive = activeParam != null && activeParam.equalsIgnoreCase("false");
-
-                List<Product> products = null;
-
-                if (onlyActive) {
-                    // Consulta apenas produtos ativos
-                    products = productService.getActiveProducts();
-                } else if (onlyInactive) {
-                    // Consulta apenas produtos inativos
-                    products = productService.getInactiveProducts();
-                } else {
-                    // Consulta todos os produtos
-                    products = productService.getAllProducts();
-                }
-
-                if (products != null) {
-                    String jsonProducts = gson.toJson(products);
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(jsonProducts);
-                    }
-                } else {
-                    // Não foi possível recuperar os produtos
-                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    JsonObject errorJson = new JsonObject();
-                    errorJson.addProperty("error", messages.getString("error.cannotRetrieveData"));
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-                    try (PrintWriter out = response.getWriter()) {
-                        out.print(errorJson.toString());
-                    }
-                }
+                sendErrorResponse(response, "Resource not found");
             }
         } catch (Exception e) {
             handleException(response, e);
         }
     }
 
+    private void handleActiveProductByHash(String hash, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        ProductReturnDTO product = productService.getActiveProductByHash(UUID.fromString(hash));
+        if (product != null) {
+            sendJsonResponse(response, product);
+        } else {
+            sendErrorResponse(response, messages.getString("error.inactiveOrNotFound"));
+        }
+    }
+
+    private void handleProductByHash(String hash, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        Product product = productService.getProductByHash(UUID.fromString(hash));
+        if (product != null) {
+            sendJsonResponse(response, product);
+        } else {
+            sendErrorResponse(response, messages.getString("error.notFound"));
+        }
+    }
+
+    private void handleProductsBelowMinStock(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        List<ProductReturnDTO> productsBelowMinStock = productService.getProductsBelowMinStock();
+        if (productsBelowMinStock != null) {
+            sendJsonResponse(response, productsBelowMinStock);
+        } else {
+            sendErrorResponse(response, messages.getString("error.cannotRetrieveData"));
+        }
+    }
+
+    private void handleAllProducts(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String activeParam = request.getParameter("active");
+        boolean onlyActive = "true".equalsIgnoreCase(activeParam);
+        boolean onlyInactive = "false".equalsIgnoreCase(activeParam);
+
+        List<ProductReturnDTO> products = null;
+
+        if (onlyActive) {
+            products = productService.getActiveProducts();
+        } else if (onlyInactive) {
+            products = productService.getInactiveProducts();
+        } else {
+            products = productService.getAllProducts();
+        }
+
+        if (products != null) {
+            sendJsonResponse(response, products);
+        } else {
+            sendErrorResponse(response, messages.getString("error.cannotRetrieveData"));
+        }
+    }
+
+
+
+    //Método POST
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            BufferedReader reader = request.getReader();
-            JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
-            ProductDTO newProductDTO = gson.fromJson(jsonObject, ProductDTO.class);
+            String requestURI = request.getRequestURI();
 
-            // Converta o ProductDTO para um objeto Product
-            Product newProduct = new Product(
-                    newProductDTO.getNome(),
-                    newProductDTO.getDescricao(),
-                    newProductDTO.getEan13(),
-                    newProductDTO.getPreco(),
-                    newProductDTO.getQuantidade(),
-                    newProductDTO.getEstoqueMin()
-            );
-
-            productService.createProduct(newProduct);
-
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-
-            JsonObject confirmation = new JsonObject();
-            confirmation.addProperty("message", messages.getString("product.create.success"));
-
-            try (PrintWriter out = response.getWriter()) {
-                out.print(gson.toJson(confirmation));
+            if (requestURI.endsWith("/batch")) {
+                processBatchCreation(request, response);
+            } else if (requestURI.endsWith("/batch-price-update")) {
+                processBatchPriceUpdate(request, response);
+            } else if (requestURI.endsWith("/batch-quantity-update")) {
+                processBatchQuantityUpdate(request, response);
+            } else {
+                processSingleProductCreation(request, response);
             }
         } catch (Exception e) {
             handleException(response, e);
         }
     }
 
+    private void processBatchCreation(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            // Lê o JSON de entrada da solicitação HTTP
+            String jsonInput = readJsonInput(request);
+
+            // Faz o parsing do JSON em um array de ProductDTO usando Gson
+            List<ProductDTO> productDTOs = parseJsonToProductDTOList(jsonInput);
+
+            // Crie um objeto ProductBatchDTO e configure sua lista de produtos
+            ProductBatchDTO batchDTO = new ProductBatchDTO();
+            batchDTO.setProductDTOs(productDTOs);
+
+            // Chama o método createProductsInBatch para processar o lote de produtos
+            JsonObject result = productService.createProductsInBatch(batchDTO);
+
+            // Verifica se há produtos com erros de validação
+            if (result.has("products_with_errors")) {
+                // Pelo menos um produto teve erro de validação, configure uma resposta de erro com status HTTP 400 (Bad Request)
+                configureJsonResponse(response, result);
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            } else {
+                // Todos os produtos foram criados com sucesso, configure uma resposta de sucesso
+                configureJsonResponse(response, result);
+            }
+        } catch (Exception e) {
+            handleException(response, e);
+        }
+    }
+
+    private void processBatchPriceUpdate(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            // Ler o JSON de entrada da solicitação HTTP
+            String jsonInput = readJsonInput(request);
+
+            // Fazer o parsing do JSON em uma lista de ProductPriceUpdateDTO usando Gson
+            ProductPriceUpdateDTO[] updates = parseJsonToProductPriceUpdateArray(jsonInput);
+
+            // Chamar o método para atualizar os preços em lote
+            List<JsonObject> produtosAtualizados = productService.updateProductPricesInBatch(Arrays.asList(updates));
+
+            // Construir um objeto JSON para a resposta
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.add("produtosAtualizados", gson.toJsonTree(produtosAtualizados));
+
+            // Configurar a resposta HTTP
+            configureJsonResponse(response, jsonResponse);
+        } catch (Exception e) {
+            handleException(response, e);
+        }
+    }
+
+    private void processBatchQuantityUpdate(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            // Ler o JSON de entrada da solicitação HTTP
+            String jsonInput = readJsonInput(request);
+
+            // Fazer o parsing do JSON em uma lista de ProductQuantityUpdateDTO usando Gson
+            ProductQuantityUpdateDTO[] updates = parseJsonToProductQuantityUpdateArray(jsonInput);
+
+            // Chamar o método para atualizar as quantidades em lote
+            List<JsonObject> errorProducts = productService.updateProductQuantitiesInBatch(updates);
+
+            JsonObject result = new JsonObject();
+            JsonArray successArray = new JsonArray();
+            JsonArray errorArray = new JsonArray();
+
+            for (JsonObject errorProduct : errorProducts) {
+                // Verificar se o objeto de erro contém uma propriedade "error"
+                if (errorProduct.has("error")) {
+                    errorArray.add(errorProduct);
+                } else {
+                    successArray.add(errorProduct);
+                }
+            }
+
+            // Verificar se há produtos com sucesso e adicioná-los ao resultado
+            if (!successArray.isEmpty()) {
+                result.add("success", successArray);
+            }
+
+            // Verificar se há produtos com erro e adicioná-los ao resultado
+            if (!errorArray.isEmpty()) {
+                result.add("error", errorArray);
+            }
+
+            // Configurar a resposta HTTP
+            configureJsonResponse(response, result);
+        } catch (Exception e) {
+            handleException(response, e);
+        }
+    }
+
+    private void processSingleProductCreation(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            // Ler o JSON de entrada da solicitação HTTP
+            String jsonInput = readJsonInput(request);
+
+            // Fazer o parsing do JSON em um objeto ProductDTO usando Gson
+            ProductDTO newProductDTO = parseJsonToProductDTO(jsonInput);
+
+            // Criar um novo produto com base no DTO
+            Product newProduct = createProductFromDTO(newProductDTO);
+
+            // Chamar o método para criar o produto
+            Product  createdProduct = productService.createProduct(newProduct); // Alteração aqui
+
+            // Configurar a resposta HTTP
+            JsonObject responseJson = new JsonObject();
+            responseJson.addProperty("message", messages.getString("product.create.success"));
+            responseJson.add("product", gson.toJsonTree(createdProduct)); // Incluir o produto criado na resposta
+
+            configureJsonResponse(response, responseJson);
+        } catch (Exception e) {
+            handleException(response, e);
+        }
+    }
+
+    private List<ProductDTO> parseJsonToProductDTOList(String jsonInput) {
+        Type listType = new TypeToken<List<ProductDTO>>() {}.getType();
+        return gson.fromJson(jsonInput, listType);
+    }
+
+    private ProductPriceUpdateDTO[] parseJsonToProductPriceUpdateArray(String jsonInput) {
+        return gson.fromJson(jsonInput, ProductPriceUpdateDTO[].class);
+    }
+
+    private ProductQuantityUpdateDTO[] parseJsonToProductQuantityUpdateArray(String jsonInput) {
+        return gson.fromJson(jsonInput, ProductQuantityUpdateDTO[].class);
+    }
+
+    private ProductDTO parseJsonToProductDTO(String jsonInput) {
+        return gson.fromJson(jsonInput, ProductDTO.class);
+    }
+
+    private Product createProductFromDTO(ProductDTO productDTO) {
+        return new Product(
+                productDTO.getNome(),
+                productDTO.getDescricao(),
+                productDTO.getEan13(),
+                productDTO.getPreco(),
+                productDTO.getQuantidade(),
+                productDTO.getEstoqueMin()
+        );
+    }
+
+
+
+    // Método PUT
+    @Override
     protected void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            // Obtenha o hash da URL
             String requestURI = request.getRequestURI();
             String[] parts = requestURI.split("/");
 
             if (parts.length != 4 || !"products".equals(parts[2])) {
-                // URL inválida, retorne um erro
-                JsonObject errorJson = new JsonObject();
-                errorJson.addProperty("error", messages.getString("product.invalid.url"));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(errorJson));
+                sendErrorResponse(response, messages.getString("product.invalid.url"));
                 return;
             }
 
             String hash = parts[3];
+            String jsonInput = readJsonInput(request);
+            JsonObject jsonObject = JsonParser.parseString(jsonInput).getAsJsonObject();
 
-            // Verifique se o DTO contém apenas os campos desejados
-            BufferedReader reader = request.getReader();
-            JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
-
-            // Encontre os campos não desejados do JSON e colete os nomes
-            Set<String> allowedFields = new HashSet<>(Arrays.asList("descricao", "preco", "quantidade", "estoque_min"));
-            Set<String> jsonFields = jsonObject.keySet();
-            List<String> removedFields = new ArrayList<>();
-            jsonFields.removeIf(field -> {
-                if (!allowedFields.contains(field)) {
-                    removedFields.add(field);
-                    return true;
-                }
-                return false;
-            });
-
-            // Se campos não desejados forem encontrados, retorne uma mensagem
-            if (!removedFields.isEmpty()) {
-                JsonObject removedFieldsJson = new JsonObject();
-                removedFieldsJson.addProperty("error", messages.getString("product.invalid.field") + (": ") + String.join(", ", removedFields));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(removedFieldsJson));
-                return;
-            }
-
-
-            // Crie um objeto ProductUpdateDTO com base no JSON
             ProductUpdateDTO updateDTO = gson.fromJson(jsonObject, ProductUpdateDTO.class);
-
-            // Configure a hash no DTO
             updateDTO.setHash(hash);
 
-            // Verifique se os campos obrigatórios estão presentes
-            List<String> missingFields = new ArrayList<>();
-            if (updateDTO.getHash() == null) {
-                missingFields.add("hash");
-            }
-            if (updateDTO.getDescricao() == null) {
-                missingFields.add("descricao");
-            }
-            if (updateDTO.getPreco() <= 0) {
-                missingFields.add("preco");
-            }
-            if (updateDTO.getQuantidade() <= 0) {
-                missingFields.add("quantidade");
-            }
-            if (updateDTO.getEstoqueMin() <= 0) {
-                missingFields.add("estoque_min");
-            }
+            Product updatedProduct = productService.updateProduct(updateDTO);
 
-            if (!missingFields.isEmpty()) {
-                // Campos obrigatórios ausentes, retorne um erro no corpo JSON
-                JsonObject errorJson = new JsonObject();
-                errorJson.addProperty("error", messages.getString("product.missing.field")+ String.join(", ", missingFields));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(errorJson));
-                return;
-            }
-
-
-            // Crie um objeto Product com base no DTO
-            Product updatedProduct = new Product();
-            updatedProduct.setHash(UUID.fromString(updateDTO.getHash()));
-
-            // Define os campos a serem atualizados no objeto Product com base no DTO
-            updatedProduct.setDescription(updateDTO.getDescricao());
-            updatedProduct.setPrice(updateDTO.getPreco());
-            updatedProduct.setQuantity(updateDTO.getQuantidade());
-            updatedProduct.setMinStock(updateDTO.getEstoqueMin());
-
-            // Atualize o produto usando o ProductService
-            boolean updated = productService.updateProduct(updatedProduct.getHash(), updatedProduct);
-
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-
-            JsonObject confirmation = new JsonObject();
-            if (updated) {
+            if (updatedProduct != null) {
+                JsonObject confirmation = new JsonObject();
                 confirmation.addProperty("message", messages.getString("product.update.success"));
-            } else {
-                confirmation.addProperty("message", messages.getString("product.update.error"));
-            }
+                confirmation.add("product", gson.toJsonTree(updatedProduct)); // Adicione o produto atualizado à resposta JSON
 
-            try (PrintWriter out = response.getWriter()) {
-                out.print(gson.toJson(confirmation));
+                sendJsonResponse(response, confirmation);
+            } else {
+                sendErrorResponse(response, messages.getString("product.update.error"));
             }
         } catch (Exception e) {
             handleException(response, e);
         }
     }
 
+
+
+    // Método PATCH
     protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-            // Obtenha o hash da URL
             String requestURI = request.getRequestURI();
             String[] parts = requestURI.split("/");
 
-            if (parts.length != 4 || !"products".equals(parts[2])) {
-                // URL inválida, retorne um erro
-                JsonObject errorJson = new JsonObject();
-                errorJson.addProperty("error", messages.getString("product.invalid.url"));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(errorJson));
+            if (parts.length != 5 || !"products".equals(parts[2]) || !"activation".equals(parts[4])) {
+                sendErrorResponse(response, messages.getString("product.invalid.url"));
                 return;
             }
 
             String hash = parts[3];
+            String jsonInput = readJsonInput(request);
+            JsonObject jsonObject = JsonParser.parseString(jsonInput).getAsJsonObject();
 
-            // Verifique se o DTO contém apenas o campo "lativo"
-            BufferedReader reader = request.getReader();
-            String line;
-            StringBuilder jsonBuilder = new StringBuilder();
-
-            while ((line = reader.readLine()) != null) {
-                jsonBuilder.append(line);
-            }
-
-            String jsonContent = jsonBuilder.toString();
-
-            if (jsonContent.isEmpty()) {
-                // Corpo da solicitação vazio, retorne um erro
-                JsonObject errorJson = new JsonObject();
-                errorJson.addProperty("error", messages.getString("product.missing.field")+ String.join(", ", "lativo"));
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(gson.toJson(errorJson));
+            if (!jsonObject.has("lativo")) {
+                sendErrorResponse(response, messages.getString("product.missing.field") + "lativo");
                 return;
             }
 
-            JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-
-
-            // Obtenha o valor do campo "lativo" do JSON
             boolean isActive = jsonObject.get("lativo").getAsBoolean();
-
-            // Ative ou desative o produto com base no valor do campo "lativo"
             UUID productHash = UUID.fromString(hash);
-            boolean updated = productService.activateOrDeactivateProduct(productHash, isActive);
+            JsonObject result = productService.activateOrDeactivateProduct(productHash, isActive);
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-
-            JsonObject confirmation = new JsonObject();
-            if (updated) {
-                confirmation.addProperty("message", isActive ? messages.getString("product.activate.success") : messages.getString("product.deactivate.success"));
-            } else {
-                confirmation.addProperty("message", messages.getString("product.update.error"));
-            }
-
-            try (PrintWriter out = response.getWriter()) {
-                out.print(gson.toJson(confirmation));
-            }
+            sendJsonResponse(response, result);
         } catch (Exception e) {
             handleException(response, e);
         }
     }
 
+
+
+
+    // Método DELETE
+    @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            // Obtenha o hash da URL
-            String hash = request.getPathInfo(); // Isso conterá "/hash" (por exemplo, "/609af184-6347-4226-a596-b27796944491")
-
-            // Remova a barra inicial
-            hash = hash.substring(1);
-
+            String hash = request.getPathInfo().substring(1); // Remove a barra inicial
             UUID productHash = UUID.fromString(hash);
 
-            boolean productExists = productDAO.doesProductExist(productHash);
+            ProductReturnDTO deletedProduct = productService.deleteProduct(productHash);
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-
-            JsonObject confirmation = new JsonObject();
-            if (productExists) {
-                productService.deleteProduct(productHash);
-                confirmation.addProperty("message", messages.getString("product.delete.success"));
+            JsonObject jsonResponse = new JsonObject();
+            if (deletedProduct != null) {
+                jsonResponse.addProperty("message", messages.getString("product.delete.success"));
+                // Adicione o produto excluído ao corpo da resposta JSON
+                jsonResponse.add("Produto Excluído", new Gson().toJsonTree(deletedProduct));
             } else {
-                confirmation.addProperty("message", messages.getString("product.notfound"));
+                jsonResponse.addProperty("message", messages.getString("product.notfound"));
             }
 
-            try (PrintWriter out = response.getWriter()) {
-                out.print(gson.toJson(confirmation));
-            }
+            sendJsonResponse(response, jsonResponse);
         } catch (Exception e) {
             handleException(response, e);
         }
     }
 
+
+
+    //Métodos auxiliares
+    private void sendJsonResponse(HttpServletResponse response, Object responseObject) throws IOException {
+        String jsonResponse = gson.toJson(responseObject);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        try (PrintWriter out = response.getWriter()) {
+            out.print(jsonResponse);
+        }
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
+        JsonObject errorJson = new JsonObject();
+        errorJson.addProperty("error", errorMessage);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        try (PrintWriter out = response.getWriter()) {
+            out.print(errorJson.toString());
+        }
+    }
+
+    private String readJsonInput(HttpServletRequest request) throws IOException {
+        BufferedReader reader = request.getReader();
+        StringBuilder jsonInput = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            jsonInput.append(line);
+        }
+        return jsonInput.toString();
+    }
+
+    private void configureJsonResponse(HttpServletResponse response, JsonObject jsonResponse) throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        try (PrintWriter out = response.getWriter()) {
+            out.print(jsonResponse.toString());
+        }
+    }
 
     private void handleException(HttpServletResponse response, Exception e) throws IOException {
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

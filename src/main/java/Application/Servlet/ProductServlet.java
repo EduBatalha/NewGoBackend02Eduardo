@@ -188,8 +188,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-
-
     private void processBatchQuantityUpdate(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             // Ler o JSON de entrada da solicitação HTTP
@@ -199,7 +197,30 @@ public class ProductServlet extends HttpServlet {
             ProductQuantityUpdateDTO[] updates = parseJsonToProductQuantityUpdateArray(jsonInput);
 
             // Chamar o método para atualizar as quantidades em lote
-            JsonObject result = productService.updateProductQuantitiesInBatch(updates);
+            List<JsonObject> errorProducts = productService.updateProductQuantitiesInBatch(updates);
+
+            JsonObject result = new JsonObject();
+            JsonArray successArray = new JsonArray();
+            JsonArray errorArray = new JsonArray();
+
+            for (JsonObject errorProduct : errorProducts) {
+                // Verificar se o objeto de erro contém uma propriedade "error"
+                if (errorProduct.has("error")) {
+                    errorArray.add(errorProduct);
+                } else {
+                    successArray.add(errorProduct);
+                }
+            }
+
+            // Verificar se há produtos com sucesso e adicioná-los ao resultado
+            if (!successArray.isEmpty()) {
+                result.add("success", successArray);
+            }
+
+            // Verificar se há produtos com erro e adicioná-los ao resultado
+            if (!errorArray.isEmpty()) {
+                result.add("error", errorArray);
+            }
 
             // Configurar a resposta HTTP
             configureJsonResponse(response, result);

@@ -246,11 +246,12 @@ public class ProductService {
 
                 if (atualizacaoBemSucedida) {
                     JsonObject produtoAtualizado = new JsonObject();
+                    produtoAtualizado.addProperty("preco_anterior", precoAtual);
+                    produtoAtualizado.addProperty("novo_preco", novoPreco);
                     produtoAtualizado.addProperty("hash", product.getHash().toString());
                     produtoAtualizado.addProperty("nome", product.getName());
                     produtoAtualizado.addProperty("descricao", product.getDescription());
                     produtoAtualizado.addProperty("ean13", product.getEan13());
-                    produtoAtualizado.addProperty("preco", precoAtual + " -> " + novoPreco);
                     produtoAtualizado.addProperty("quantidade", product.getQuantity());
                     produtoAtualizado.addProperty("estoque_min", product.getMinStock());
                     produtoAtualizado.addProperty("lativo", product.isLativo());
@@ -270,10 +271,6 @@ public class ProductService {
         return produtosAtualizados;
     }
 
-
-
-
-
     private double calcularNovoPreco(double precoAtual, ProductPriceUpdateDTO update) {
         double valorParaAdicionar = parseValor(update.getValor());
 
@@ -291,11 +288,6 @@ public class ProductService {
         }
     }
 
-
-
-
-
-
     // Método para analisar e converter o valor (porcentagem ou valor fixo)
     private double parseValor(String valor) {
         if (valor.endsWith("%")) {
@@ -309,13 +301,8 @@ public class ProductService {
     }
 
 
-    // Método para atualizar o campo "preco" de um produto
-    private void updateProductPrice(Product product, double novoPreco) {
-        product.setPrice(novoPreco);
-    }
 
-
-    public JsonObject updateProductQuantitiesInBatch(ProductQuantityUpdateDTO[] updates) {
+    public List<JsonObject> updateProductQuantitiesInBatch(ProductQuantityUpdateDTO[] updates) {
         List<JsonObject> errorProducts = new ArrayList<>();
         List<JsonObject> successProducts = new ArrayList<>();
 
@@ -323,36 +310,57 @@ public class ProductService {
             Product product = productDAO.getProductByHash(update.getHash());
 
             if (product != null) {
-                // Verificar se a quantidade é não negativa
-                if (update.getQuantidade() >= 0) {
-                    // Verificar se o produto está ativo antes de atualizar
-                    if (product.isLativo()) {
-                        // Atualize a quantidade do produto
-                        product.setQuantity(update.getQuantidade());
+                // Verifique se o produto está ativo antes de atualizar
+                if (product.isLativo()) {
+                    // Obtenha a quantidade atual do produto
+                    double quantidadeAtual = product.getQuantity();
+
+                    // Calcule a nova quantidade com base na quantidade atual e na operação
+                    double novaQuantidade = calcularNovaQuantidade(quantidadeAtual, update);
+
+                    // Verificar se a nova quantidade é negativa
+                    if (novaQuantidade < 0) {
+                        JsonObject errorProduct = new JsonObject();
+                        errorProduct.addProperty("error", messages.getString("error.negativeQuantityAfterMinus"));
+                        errorProduct.addProperty("hash", product.getHash().toString());
+                        errorProduct.addProperty("nome", product.getName());
+                        errorProduct.addProperty("descricao", product.getDescription());
+                        errorProduct.addProperty("EAN13", product.getEan13());
+                        errorProduct.addProperty("quantidade atual", product.getQuantity());
+                        errorProducts.add(errorProduct);
+                    } else {
+                        // Atualize o campo "quantidade" do produto diretamente
+                        product.setQuantity(novaQuantidade);
                         boolean atualizacaoBemSucedida = productDAO.updateProduct(product);
 
                         if (atualizacaoBemSucedida) {
-                            JsonObject successProduct = new JsonObject();
-                            successProduct.addProperty("hash", product.getHash().toString());
-                            successProduct.addProperty("quantidade", product.getQuantity());
-                            successProducts.add(successProduct);
+                            JsonObject produtoAtualizado = new JsonObject();
+                            produtoAtualizado.addProperty("quantidade_anterior", quantidadeAtual);
+                            produtoAtualizado.addProperty("nova_quantidade", novaQuantidade);
+                            produtoAtualizado.addProperty("hash", product.getHash().toString());
+                            produtoAtualizado.addProperty("nome", product.getName());
+                            produtoAtualizado.addProperty("descricao", product.getDescription());
+                            produtoAtualizado.addProperty("EAN13", product.getEan13());
+                            produtoAtualizado.addProperty("preco", product.getPrice());
+                            produtoAtualizado.addProperty("estoque_min", product.getMinStock());
+                            produtoAtualizado.addProperty("lativo", product.isLativo());
+                            produtoAtualizado.addProperty("dtCreate", product.getDtCreate().toString());
+                            produtoAtualizado.addProperty("dtUpdate", product.getDtUpdate().toString());
+                            successProducts.add(produtoAtualizado);
                         } else {
                             JsonObject errorProduct = new JsonObject();
                             errorProduct.addProperty("hash", product.getHash().toString());
-                            errorProduct.addProperty("error", messages.getString("product.update.error"));
+                            errorProduct.addProperty("error", messages.getString("product.update.error") + update.getHash());
                             errorProducts.add(errorProduct);
                         }
-                    } else {
-                        // Produto inativo, lançar exceção
-                        JsonObject errorProduct = new JsonObject();
-                        errorProduct.addProperty("hash", product.getHash().toString());
-                        errorProduct.addProperty("error", messages.getString("error.cannotUpdateInactiveProduct"));
-                        errorProducts.add(errorProduct);
                     }
                 } else {
+                    // Produto inativo, lançar exceção
                     JsonObject errorProduct = new JsonObject();
                     errorProduct.addProperty("hash", product.getHash().toString());
-                    errorProduct.addProperty("error", messages.getString("product.negativeQuantity"));
+                    errorProduct.addProperty("nome", product.getName());
+                    errorProduct.addProperty("EAN13", product.getEan13());
+                    errorProduct.addProperty("error", messages.getString("error.cannotUpdateInactiveProduct"));
                     errorProducts.add(errorProduct);
                 }
             } else {
@@ -363,17 +371,22 @@ public class ProductService {
             }
         }
 
-        JsonObject result = new JsonObject();
+        // Retorne a lista de produtos atualizados com sucesso
+        return successProducts;
+    }
 
-        if (!successProducts.isEmpty()) {
-            result.add("success", gson.toJsonTree(successProducts));
+    private double calcularNovaQuantidade(double quantidadeAtual, ProductQuantityUpdateDTO update) {
+        double valorParaAdicionar = update.getQuantidade();
+
+        if (valorParaAdicionar >= 0) {
+            // Quantidade positiva, realizar soma
+            return quantidadeAtual + valorParaAdicionar;
+        } else {
+            // Quantidade negativa, realizar subtração se o resultado for maior ou igual a zero
+            double novaQuantidade = quantidadeAtual - Math.abs(valorParaAdicionar);
+
+            return novaQuantidade;
         }
-
-        if (!errorProducts.isEmpty()) {
-            result.add("error", gson.toJsonTree(errorProducts));
-        }
-
-        return result;
     }
 
 

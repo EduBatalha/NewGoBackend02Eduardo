@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS public.produto
 (
     id bigint NOT NULL DEFAULT nextval('produto_id_seq'::regclass),
-    hash uuid DEFAULT gen_random_uuid(),
+    hash uuid NOT NULL,
     nome character varying(255) COLLATE pg_catalog."default" NOT NULL,
     descricao text COLLATE pg_catalog."default",
     ean13 character varying(13) COLLATE pg_catalog."default" NOT NULL,

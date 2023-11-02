@@ -1,4 +1,3 @@
-# NewGoBackend02Eduardo
 Projeto de gestão de estoque baseado em API Rest, utlizando database PostgreSQL
 
 ## Coleção postman:
